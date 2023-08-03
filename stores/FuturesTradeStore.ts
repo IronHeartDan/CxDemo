@@ -1,6 +1,6 @@
 import axios from "axios";
 import { makeAutoObservable, runInAction } from "mobx"
-import { Ticker, MarkPrice, StreamOrder, StreamPosition, TradeData, StreamTradeData } from "../types/BinanceTypes";
+import { Ticker, MarkPrice, StreamOrder, StreamPosition, TradeData, StreamTradeData, AccountInfo, Position } from "../types/BinanceTypes";
 import { client } from "../utils/ApiManage";
 import binanceClient from "../utils/BinanceClient";
 // const WsBase = "wss://fstream.binance.com"
@@ -20,17 +20,18 @@ class FuturesTradeStore {
     totalMarginBalance = 0
     totalPNL = 0
     orders: StreamOrder[] = [];
-    positions: StreamPosition[] = [];
+    positions: Position[] = [];
 
 
     // Market Info
+    currentSymbol = 'BTCUSDT'
     isMarketConnected = false
     private marketWS: WebSocket | null = null
     private userWS: WebSocket | null = null
     tradeHistory: any[] = []
     orderBook = { a: [], b: [], loaded: false }
     symbolTicker: Ticker | null = null
-    markPrice: MarkPrice | null = null
+    symbolMarkPrice: Map<string, MarkPrice> = new Map()
 
     private static instance: FuturesTradeStore | null = null;
 
@@ -81,7 +82,7 @@ class FuturesTradeStore {
 
     fetchPositions = async () => {
         const res = await client.get(endpoints.positions)
-        const resPositions: StreamPosition[] = [...res.data]
+        const resPositions: Position[] = [...res.data]
         runInAction(() => {
             this.positions = resPositions
         })
@@ -90,16 +91,16 @@ class FuturesTradeStore {
     loadAllFromBinance = async () => {
         const symbol = 'BTCUSDT'
         const trades = await binanceClient.futuresAggTrades({ symbol: symbol, limit: 10 })
-        const accInfo = await binanceClient.futuresAccountInfo()
+        const accInfo: AccountInfo = await binanceClient.futuresAccountInfo()
         const orders = await binanceClient.futuresOpenOrders({
             symbol: symbol
         });
         // const positions = await binanceClient.futuresPositionRisk()
-        const openPositions = accInfo.positions.filter((position: any) => parseFloat(position.positionAmt) !== 0)
+        const openPositions = accInfo.positions.filter((position) => parseFloat(position.positionAmt) !== 0)
         runInAction(() => {
-            this.totalWalletBalance = accInfo.totalWalletBalance
-            this.totalMarginBalance = accInfo.totalMarginBalance
-            this.totalPNL = accInfo.totalUnrealizedProfit
+            this.totalWalletBalance = parseFloat(accInfo.totalWalletBalance)
+            this.totalMarginBalance = parseFloat(accInfo.totalMarginBalance)
+            this.totalPNL = parseFloat(accInfo.totalUnrealizedProfit)
             this.tradeHistory = trades.reverse()
             this.orders = orders
             this.positions = openPositions
@@ -120,7 +121,8 @@ class FuturesTradeStore {
                 params: [
                     "btcusdt@aggSnap",
                     "btcusdt@ticker",
-                    "btcusdt@markPrice",
+                    // "btcusdt@markPrice",
+                    "!markPrice@arr@1s",
                     "btcusdt@depth10@500ms",
                 ],
                 id: 1,
@@ -134,34 +136,47 @@ class FuturesTradeStore {
 
             if (!data) return
 
-            if (data.e === 'aggSnap') {
-                runInAction(() => {
-                    if (this.tradeHistory.length < 10) {
-                        this.tradeHistory = [data, ...this.tradeHistory]
-                    } else {
-                        this.tradeHistory.pop()
-                        this.tradeHistory = [data, ...this.tradeHistory]
-                    }
-                })
-            }
+            if (Array.isArray(data)) {
 
-            if (data.e === 'markPriceUpdate') {
+                const newMap = new Map<string, MarkPrice>();
+                for (let symbol of data as MarkPrice[]) {
+                    newMap.set(symbol.s, symbol)
+                }
                 runInAction(() => {
-                    this.markPrice = data
+                    this.symbolMarkPrice = newMap
                 })
-            }
 
-            if (data.e === 'depthUpdate') {
-                runInAction(() => {
-                    const { a, b } = data
-                    this.orderBook = { a: a, b: b, loaded: true }
-                })
-            }
+            } else {
 
-            if (data.e === '24hrTicker') {
-                runInAction(() => {
-                    this.symbolTicker = data
-                })
+                if (data.e === 'aggSnap') {
+                    runInAction(() => {
+                        if (this.tradeHistory.length < 10) {
+                            this.tradeHistory = [data, ...this.tradeHistory]
+                        } else {
+                            this.tradeHistory.pop()
+                            this.tradeHistory = [data, ...this.tradeHistory]
+                        }
+                    })
+                }
+
+                // if (data.e === 'markPriceUpdate') {
+                //     runInAction(() => {
+                //         this.symbolMarkPrice = data
+                //     })
+                // }
+
+                if (data.e === 'depthUpdate') {
+                    runInAction(() => {
+                        const { a, b } = data
+                        this.orderBook = { a: a, b: b, loaded: true }
+                    })
+                }
+
+                if (data.e === '24hrTicker') {
+                    runInAction(() => {
+                        this.symbolTicker = data
+                    })
+                }
             }
         }
 

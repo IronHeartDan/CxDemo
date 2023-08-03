@@ -53,6 +53,12 @@ const PlaceOrder = observer(({ close }: { close: any }) => {
             })
         } catch (error) {
             console.log(error);
+            Snackbar.show({
+                text: `error`,
+                duration: Snackbar.LENGTH_SHORT,
+                backgroundColor: 'white',
+                textColor: 'red'
+            })
         }
     }
 

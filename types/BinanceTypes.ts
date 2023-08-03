@@ -60,23 +60,23 @@ export type Order = {
 }
 
 
-export type Position = {
-    symbol: string
-    positionAmt: string
-    entryPrice: string
-    markPrice: string
-    unRealizedProfit: string
-    liquidationPrice: string
-    leverage: string
-    maxNotionalValue: string
-    marginType: string
-    isolatedMargin: string
-    isAutoAddMargin: string
-    positionSide: string
-    notional: string
-    isolatedWallet: string
-    updateTime: number
-}
+// export type Position = {
+//     symbol: string
+//     positionAmt: string
+//     entryPrice: string
+//     markPrice: string
+//     unRealizedProfit: string
+//     liquidationPrice: string
+//     leverage: string
+//     maxNotionalValue: string
+//     marginType: string
+//     isolatedMargin: string
+//     isAutoAddMargin: string
+//     positionSide: string
+//     notional: string
+//     isolatedWallet: string
+//     updateTime: number
+// }
 
 export type Ticker = {
     e: string
@@ -132,3 +132,62 @@ export type StreamTradeData = {
     T: number;
     m: boolean;
 }
+
+export type Asset = {
+    asset: string;
+    walletBalance: string;
+    unrealizedProfit: string;
+    marginBalance: string;
+    maintMargin: string;
+    initialMargin: string;
+    positionInitialMargin: string;
+    openOrderInitialMargin: string;
+    maxWithdrawAmount: string;
+    crossWalletBalance: string;
+    crossUnPnl: string;
+    availableBalance: string;
+    marginAvailable: boolean;
+    updateTime: number;
+};
+
+export type Position = {
+    symbol: string;
+    initialMargin: string;
+    maintMargin: string;
+    unrealizedProfit: string;
+    positionInitialMargin: string;
+    openOrderInitialMargin: string;
+    leverage: string;
+    isolated: boolean;
+    entryPrice: string;
+    maxNotional: string;
+    positionSide: string;
+    positionAmt: string;
+    notional: string;
+    isolatedWallet: string;
+    updateTime: number;
+    bidNotional: string;
+    askNotional: string;
+};
+
+export type AccountInfo = {
+    feeTier: number;
+    canTrade: boolean;
+    canDeposit: boolean;
+    canWithdraw: boolean;
+    updateTime: number;
+    multiAssetsMargin: boolean;
+    totalInitialMargin: string;
+    totalMaintMargin: string;
+    totalWalletBalance: string;
+    totalUnrealizedProfit: string;
+    totalMarginBalance: string;
+    totalPositionInitialMargin: string;
+    totalOpenOrderInitialMargin: string;
+    totalCrossWalletBalance: string;
+    totalCrossUnPnl: string;
+    availableBalance: string;
+    maxWithdrawAmount: string;
+    assets: Asset[];
+    positions: Position[];
+};

@@ -7,26 +7,37 @@ import SkeletonPlaceholder from 'react-native-skeleton-placeholder'
 
 const TradeHistory = observer(() => {
 
+    const RenderTradeListItem = (trade: any, index: number) => {
 
-    const renderTrade = (trade: any) => {
+        const price = parseFloat(trade.p ?? trade.price)
+        var quantity = parseFloat(trade.q ?? trade.cq ?? trade.quantity)
+        const timeStamp = moment.unix(trade.T ?? trade.timestamp / 1000).local(true).format('HH:mm:ss')
 
-        const price = trade.price ?? trade.p
-        const size = trade.quantity ?? trade.cq
-        const time = trade.timestamp ?? trade.T
+        let tempColor;
+
+        if (!trade.cq) {
+            const previousPrice = index > 0 ? parseFloat(futuresTradeStore.tradeHistory[index - 1].p) : price
+            tempColor = price > previousPrice ? 'green' : 'red'
+        } else {
+            tempColor = quantity < 0 ? 'green' : 'red'
+            quantity *= quantity < 0 ? -1 : 1
+        }
+
+        const color = tempColor
 
         return (
-            <View style={styles.tradeRow}>
+            <View style={styles.tradeRow} key={index}>
                 <View style={styles.tradeCell}>
                     <Text style={{
                         textAlign: 'left',
-                        color: parseFloat(size) < 0 ? '#0ecb81' : 'red',
+                        color: color,
                     }}>{price}</Text>
                 </View>
                 <View style={styles.tradeCell}>
-                    <Text style={styles.tradeCellText}>{parseFloat(size) < 0 ? size * -1 : size}</Text>
+                    <Text style={styles.tradeCellText}>{quantity}</Text>
                 </View>
                 <View style={styles.tradeCell}>
-                    <Text style={styles.tradeCellText}>{moment.unix(time / 1000).local().format('HH:mm:ss')}</Text>
+                    <Text style={styles.tradeCellText}>{timeStamp}</Text>
                 </View>
             </View>
         )
@@ -35,7 +46,7 @@ const TradeHistory = observer(() => {
     if (futuresTradeStore.tradeHistory.length === 0) {
         return (
             <View>
-                {Array.from({ length: 10 }).map((item, index) => (
+                {Array.from({ length: 10 }).map((_item, index) => (
                     <SkeletonPlaceholder
                         key={index}
                         backgroundColor='rgba(255, 255, 255, 0.5)'
@@ -66,7 +77,7 @@ const TradeHistory = observer(() => {
                     <Text style={styles.headerItemText}>Time</Text>
                 </View>
             </View>
-            {futuresTradeStore.tradeHistory.map((trade, index) => (<View key={index}>{renderTrade(trade)}</View>))}
+            {futuresTradeStore.tradeHistory.map((trade, index) => RenderTradeListItem(trade, index))}
         </View>
     )
 })

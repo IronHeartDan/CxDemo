@@ -28,16 +28,16 @@ const MarketInfo = observer(() => {
     return (
         <View style={styles.container}>
             <View style={styles.infoCell}>
-                {futuresTradeStore.markPrice &&
+                {futuresTradeStore.symbolMarkPrice.has(futuresTradeStore.currentSymbol) &&
                     <Text style={styles.infoCellValue}>
-                        {Math.round(parseFloat(futuresTradeStore.markPrice.p) * 10) / 10}
+                        {Math.round(parseFloat(futuresTradeStore.symbolMarkPrice.get(futuresTradeStore.currentSymbol)!.p) * 10) / 10}
                     </Text>}
                 <Text style={styles.infoCellLable}>Mark</Text>
             </View>
             <View style={styles.infoCell}>
-                {futuresTradeStore.markPrice &&
+                {futuresTradeStore.symbolMarkPrice.has(futuresTradeStore.currentSymbol) &&
                     <Text style={styles.infoCellValue}>
-                        {Math.round(parseFloat(futuresTradeStore.markPrice.i) * 10) / 10}
+                        {Math.round(parseFloat(futuresTradeStore.symbolMarkPrice.get(futuresTradeStore.currentSymbol)!.i) * 10) / 10}
                     </Text>}
                 <Text style={styles.infoCellLable}>Index</Text>
             </View>
@@ -56,9 +56,9 @@ const MarketInfo = observer(() => {
                 <Text style={styles.infoCellLable}>Low</Text>
             </View>
             <View style={styles.infoCell}>
-                {futuresTradeStore.markPrice &&
+                {futuresTradeStore.symbolMarkPrice.has(futuresTradeStore.currentSymbol) &&
                     <Text style={styles.infoCellValue}>
-                        {getTimeDiff(futuresTradeStore.markPrice.T)}
+                        {getTimeDiff(futuresTradeStore.symbolMarkPrice.get(futuresTradeStore.currentSymbol)!.T)}
                     </Text>}
                 <Text style={styles.infoCellLable}>Funding</Text>
             </View>
