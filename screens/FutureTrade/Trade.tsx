@@ -13,7 +13,7 @@ import {
     BottomSheetModal,
 } from '@gorhom/bottom-sheet';
 import { Button } from 'react-native-paper';
-import PlaceOrder from './place-order'
+import PlaceOrder from './PlaceOrder'
 import MarketInfo from '../../components/MarketInfo'
 import futuresTradeStore from '../../stores/FuturesTradeStore'
 import EnableFutures from './EnableFutures'
@@ -21,6 +21,7 @@ import { observer } from 'mobx-react'
 import { TabItemProps, Tabs } from 'react-native-collapsible-tab-view'
 import Snackbar from 'react-native-snackbar'
 import TradeHistory from '../../components/TradeHistory'
+import ExchangeInfo from '../../components/ExchangeInfo'
 
 
 const Trade = observer(() => {
@@ -72,9 +73,12 @@ const Trade = observer(() => {
     const header = useCallback(() => {
         return (
             <View style={{ width: '100%' }}>
+                <View style={{ padding: 10 }}>
+                    <ExchangeInfo />
+                </View>
                 <WebView
                     style={{ backgroundColor: "transparent", aspectRatio: 1 }}
-                    source={{ uri: "https://cryptoxpress.com/charts-dark?symbol=BTCUSDT" }}
+                    source={{ uri: `https://cryptoxpress.com/charts-dark?symbol=${futuresTradeStore.currentSymbol}` }}
                     allowFileAccessFromFileURLs={true}
                     javaScriptEnabled={true}
                     domStorageEnabled={true}
@@ -96,7 +100,7 @@ const Trade = observer(() => {
                 </View>
             </View>
         )
-    }, [])
+    }, [futuresTradeStore.currentSymbol])
 
     const close = () => {
         placeOrderSheetRef?.current?.close()

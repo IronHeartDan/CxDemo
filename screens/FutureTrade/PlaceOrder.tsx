@@ -1,7 +1,6 @@
 import { StyleSheet, View, Text, TextInput, FlatList } from 'react-native'
 import React, { useCallback, useEffect, useState } from 'react'
 import { Button, Chip } from 'react-native-paper';
-import binanceClient from '../../utils/BinanceClient';
 import OrderBook from '../../components/OrderBook';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { observer } from 'mobx-react';
@@ -16,8 +15,6 @@ const orderTypes = [
     "STOP"
 ]
 
-const client = binanceClient
-
 const PlaceOrder = observer(({ close }: { close: any }) => {
 
     const [loading, setLoading] = useState(false)
@@ -25,25 +22,22 @@ const PlaceOrder = observer(({ close }: { close: any }) => {
     const [orderType, setOrderType] = useState<string>(orderTypes[0])
     const [orderPrice, setOrderPrice] = useState('')
     const [orderSize, setOrderSize] = useState('')
+    const [orderStopPrice, setOrderStopPrice] = useState('')
+
 
 
     const placeOrder = async (side: any) => {
         try {
-            const symbol = 'BTCUSDT'
-            // const side = 'BUY' // Replace with 'SELL' if you want to sell BTC
-            // const quantity = 1 // Replace with the desired quantity of BTC
-            // const price = 30000 // Replace with the desired price for the limit order
-
-            const order = await client.futuresOrder({
-                symbol: symbol,
-                side: side,
-                quantity: orderSize,
-                type: 'LIMIT',
-                price: orderPrice,
-                timeInForce: 'GTC',
-            })
+            await futuresTradeStore.placeOrder(
+                side,
+                orderType,
+                Number(orderSize),
+                Number(orderPrice),
+                Number(orderStopPrice)
+            )
 
             console.log('Order placed')
+
             if (close) close()
             Snackbar.show({
                 text: 'Order Placed',
@@ -54,7 +48,7 @@ const PlaceOrder = observer(({ close }: { close: any }) => {
         } catch (error) {
             console.log(error);
             Snackbar.show({
-                text: `error`,
+                text: `${error}`,
                 duration: Snackbar.LENGTH_SHORT,
                 backgroundColor: 'white',
                 textColor: 'red'
@@ -89,10 +83,12 @@ const PlaceOrder = observer(({ close }: { close: any }) => {
         <BottomSheetScrollView>
             <View style={styles.container}>
                 <View>
-                    <Text style={{ fontSize: 24, color: 'white' }}>BTCUSDT</Text>
+                    <Text style={{ fontSize: 24, color: 'white' }}>{futuresTradeStore.currentSymbol}</Text>
                     <View style={{ flexDirection: 'row' }}>
                         <Text style={{ fontWeight: 'bold', color: 'green' }}>Live </Text>
-                        <Text style={{ color: 'white' }}>{futuresTradeStore.symbolTicker?.c.slice(0, 10)}</Text>
+                        {futuresTradeStore.symbolTicker.has(futuresTradeStore.currentSymbol) && <Text style={{ color: 'white' }}>
+                            {futuresTradeStore.symbolTicker.get(futuresTradeStore.currentSymbol)?.c.slice(0, 10)}
+                        </Text>}
                     </View>
                 </View>
 
@@ -108,6 +104,8 @@ const PlaceOrder = observer(({ close }: { close: any }) => {
                     {orderType === orderTypes[2] && <View style={styles.inputCon}>
                         <Text>Stop Price</Text>
                         <TextInput style={styles.textInput} keyboardType="number-pad"
+                            onChangeText={setOrderStopPrice}
+                            value={orderStopPrice}
                             placeholder='0'
                         />
                         <Text>USDT</Text>

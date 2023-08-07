@@ -99,6 +99,19 @@ export type Ticker = {
     n: number
 }
 
+export type MiniTicker = {
+    e: string; // Event type
+    E: number; // Event time (Unix timestamp)
+    s: string; // Symbol
+    c: string; // Close price
+    o: string; // Open price
+    h: string; // High price
+    l: string; // Low price
+    v: string; // Total traded base asset volume
+    q: string; // Total traded quote asset volume
+}
+
+
 export type MarkPrice = {
     e: string
     E: number
@@ -191,3 +204,67 @@ export type AccountInfo = {
     assets: Asset[];
     positions: Position[];
 };
+
+
+// Exchange Types
+
+type FilterType =
+    | 'PRICE_FILTER'
+    | 'LOT_SIZE'
+    | 'MARKET_LOT_SIZE'
+    | 'MAX_NUM_ORDERS'
+    | 'MAX_NUM_ALGO_ORDERS'
+    | 'MIN_NOTIONAL'
+    | 'PERCENT_PRICE';
+
+type TimeInForce = 'GTC' | 'IOC' | 'FOK' | 'GTX';
+
+type OrderType =
+    | 'LIMIT'
+    | 'MARKET'
+    | 'STOP'
+    | 'STOP_MARKET'
+    | 'TAKE_PROFIT'
+    | 'TAKE_PROFIT_MARKET'
+    | 'TRAILING_STOP_MARKET';
+
+export type MarketSymbol = {
+    symbol: string;
+    pair: string;
+    contractType: string;
+    deliveryDate: number;
+    onboardDate: number;
+    status: string;
+    maintMarginPercent: string;
+    requiredMarginPercent: string;
+    baseAsset: string;
+    quoteAsset: string;
+    marginAsset: string;
+    pricePrecision: number;
+    quantityPrecision: number;
+    baseAssetPrecision: number;
+    quotePrecision: number;
+    underlyingType: string;
+    underlyingSubType: string[];
+    settlePlan: number;
+    triggerProtect: string;
+    liquidationFee: string;
+    marketTakeBound: string;
+    maxMoveOrderLimit: number;
+    filters: {
+        filterType: FilterType;
+        minPrice?: string;
+        tickSize?: string;
+        maxPrice?: string;
+        maxQty?: string;
+        minQty?: string;
+        stepSize?: string;
+        notional?: string;
+        multiplierUp?: string;
+        multiplierDecimal?: string;
+        multiplierDown?: string;
+        limit?: number;
+    }[];
+    orderTypes: OrderType[];
+    timeInForce: TimeInForce[];
+}

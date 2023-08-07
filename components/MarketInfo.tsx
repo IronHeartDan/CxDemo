@@ -42,16 +42,16 @@ const MarketInfo = observer(() => {
                 <Text style={styles.infoCellLable}>Index</Text>
             </View>
             <View style={styles.infoCell}>
-                {futuresTradeStore.symbolTicker &&
+                {futuresTradeStore.symbolTicker.has(futuresTradeStore.currentSymbol) &&
                     <Text style={styles.infoCellValue}>
-                        {Math.round(parseFloat(futuresTradeStore.symbolTicker.h) * 10) / 10}
+                        {Math.round(parseFloat(futuresTradeStore.symbolTicker.get(futuresTradeStore.currentSymbol)!.h) * 10) / 10}
                     </Text>}
                 <Text style={styles.infoCellLable}>High</Text>
             </View>
             <View style={styles.infoCell}>
-                {futuresTradeStore.symbolTicker &&
+                {futuresTradeStore.symbolTicker.has(futuresTradeStore.currentSymbol) &&
                     <Text style={styles.infoCellValue}>
-                        {Math.round(parseFloat(futuresTradeStore.symbolTicker.l) * 10) / 10}
+                        {Math.round(parseFloat(futuresTradeStore.symbolTicker.get(futuresTradeStore.currentSymbol)!.l) * 10) / 10}
                     </Text>}
                 <Text style={styles.infoCellLable}>Low</Text>
             </View>

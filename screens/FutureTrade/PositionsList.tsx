@@ -26,46 +26,61 @@ const PositionsList = observer(() => {
     const renderPosition = ({ item }: { item: StreamPosition | Position | any }) => {
 
         const symbol = item.symbol ?? item.s
-        const positionAmount = item.positionAmt ?? item.pa
-        const entryPrice = item.entryPrice ?? item.ep
-        const leverage = item.leverage ?? 0
-        const margin = item.initialMargin
+        const leverage = Number(item.leverage ?? 0)
+        const positionAmount = Number(item.positionAmt ?? item.pa)
+        const entryPrice = Number(item.entryPrice ?? item.ep)
+        const margin = Number(item.initialMargin)
+        const initialEquity = entryPrice * positionAmount / leverage
         let pnl;
         let marketPrice = 0
 
         if (futuresTradeStore.symbolMarkPrice.has(symbol)) {
             marketPrice = Number(futuresTradeStore.symbolMarkPrice.get(symbol)!.p);
-            pnl = Number(((marketPrice - Number(entryPrice)) * positionAmount).toFixed(2));
+            pnl = Number(((marketPrice - entryPrice) * positionAmount).toFixed(2));
         } else {
             pnl = 0;
         }
+
+        const roe = Number(((pnl / initialEquity) * 100).toFixed(2))
 
         return (
             <View key={item.s} style={style.card}>
                 <View style={style.row}>
                     <Text style={style.symbol}>{symbol}</Text>
                     <View style={style.cell}>
-                        <Text style={style.item}>{leverage}x</Text>
+                        <Text style={{ ...style.title, ...style.textRight }}>{leverage}x</Text>
                     </View>
                 </View>
                 <View style={style.row}>
-                    <View style={style.cell}>
-                        <Text style={style.title}>Mark Price</Text>
-                        <Text style={style.item}>{marketPrice.toFixed(2)}</Text>
-                    </View>
                     <View style={style.cell}>
                         <Text style={style.title}>Entry Price</Text>
                         <Text style={style.item}>{Number(entryPrice).toFixed(2)}</Text>
                     </View>
                     <View style={style.cell}>
-                        <Text style={style.title}>Size</Text>
-                        <Text style={style.item}>{positionAmount}</Text>
+                        <Text style={{ ...style.title, ...style.textRight }}>Mark Price</Text>
+                        <Text style={{ ...style.item, ...style.textRight }}>{marketPrice.toFixed(2)}</Text>
+                    </View>
+                    <View style={style.cell}>
+                        <Text style={{ ...style.title, ...style.textRight }}>Size</Text>
+                        <Text style={{ ...style.item, ...style.textRight }}>{positionAmount}</Text>
                     </View>
                 </View>
                 <View style={style.row}>
                     <View style={style.cell}>
-                        <Text style={style.title}>PNL</Text>
-                        <Text style={{ color: pnl < 0 ? 'red' : pnl > 0 ? 'green' : 'rgba(255, 255, 255, 0.5)' }}>{pnl}</Text>
+                        <Text style={style.title}>Margin</Text>
+                        <Text style={style.item}>{margin.toFixed(2)}</Text>
+                    </View>
+                    <View style={style.cell}>
+                        <Text style={{ ...style.title, ...style.textRight }}>Liq.Price</Text>
+                        <Text style={{ ...style.item, ...style.textRight }}>--</Text>
+                    </View>
+                </View>
+                <View style={style.row}>
+                    <View style={style.cell}>
+                        <Text style={style.title}>PNL(ROE %)</Text>
+                        <Text style={{ color: pnl < 0 ? 'red' : pnl > 0 ? 'green' : 'rgba(255, 255, 255, 0.5)', }}>{pnl}</Text>
+                        <Text style={{ color: roe < 0 ? 'red' : roe > 0 ? 'green' : 'rgba(255, 255, 255, 0.5)', }}>({roe}%)</Text>
+
                     </View>
                 </View>
                 <View style={{ ...style.row, marginVertical: 10, }}>
@@ -101,15 +116,15 @@ const style = StyleSheet.create({
         // color: 'rgba(255, 255, 255, 0.5)',
         color: 'white',
         fontSize: 24,
-        marginBottom: 10
     },
     row: {
+        marginTop: 10,
         paddingHorizontal: 10,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between'
     },
     cell: {
+        flex: 1,
         paddingVertical: 5
     },
     title: {
@@ -121,7 +136,13 @@ const style = StyleSheet.create({
         // color: 'rgba(255, 255, 255, 0.5)',
         color: 'white',
         fontSize: 16
-    }
+    },
+    textRight: {
+        textAlign: 'right'
+    },
+    textLeft: {
+        textAlign: 'left'
+    },
 })
 
 export default PositionsList

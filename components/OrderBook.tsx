@@ -19,13 +19,13 @@ const OrderBook = observer(({ horizontal = false }) => {
     }, [futuresTradeStore.orderBook])
 
     const calcSum = (data: any, isAsk = false): [] => {
-        if (futuresTradeStore.symbolTicker == null || futuresTradeStore.symbolTicker!.c.length === 0) return data.slice(0, 8)
+        if (!futuresTradeStore.symbolTicker.has(futuresTradeStore.currentSymbol)) return data.slice(0, 8)
 
         let cumulativeSum = 0
         const totalVolume = data.reduce((sum: any, item: any) => sum + parseFloat(item[1]), 0)
 
         const dataWithSum = data.slice(0, 8).map((item: any) => {
-            const priceInBTC = parseFloat(item[0]) / parseFloat(futuresTradeStore.symbolTicker!.c)
+            const priceInBTC = parseFloat(item[0]) / parseFloat(futuresTradeStore.symbolTicker.get(futuresTradeStore.currentSymbol)!.c)
             const sizeInBTC = parseFloat(item[1])
             cumulativeSum += priceInBTC * sizeInBTC
             const percentage = (cumulativeSum / totalVolume) * 100
@@ -94,7 +94,9 @@ const OrderBook = observer(({ horizontal = false }) => {
                     ))}
                 </View>
                 <View style={styles.symbolPrice}>
-                    <Text style={styles.symbolPriceText}>{futuresTradeStore.symbolTicker?.c.slice(0, 10)}</Text>
+                    {futuresTradeStore.symbolTicker.has(futuresTradeStore.currentSymbol) && <Text style={styles.symbolPriceText}>
+                        {futuresTradeStore.symbolTicker.get(futuresTradeStore.currentSymbol)?.c.slice(0, 10)}
+                    </Text>}
                 </View>
                 <View>
                     {orderBookData.bids.map((bid, index) => (

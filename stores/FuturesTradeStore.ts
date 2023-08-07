@@ -1,8 +1,8 @@
-import axios from "axios";
+import axios from "axios"
 import { makeAutoObservable, runInAction } from "mobx"
-import { Ticker, MarkPrice, StreamOrder, StreamPosition, TradeData, StreamTradeData, AccountInfo, Position } from "../types/BinanceTypes";
-import { client } from "../utils/ApiManage";
-import binanceClient from "../utils/BinanceClient";
+import { Ticker, MarkPrice, StreamOrder, StreamPosition, TradeData, StreamTradeData, AccountInfo, Position, MarketSymbol, MiniTicker } from "../types/BinanceTypes"
+import { client } from "../utils/ApiManage"
+import binanceClient from "../utils/BinanceClient"
 // const WsBase = "wss://fstream.binance.com"
 const WsBase = "wss://testnet.binancefuture.com"
 
@@ -19,28 +19,30 @@ class FuturesTradeStore {
     totalWalletBalance = 0
     totalMarginBalance = 0
     totalPNL = 0
-    orders: StreamOrder[] = [];
-    positions: Position[] = [];
+    orders: StreamOrder[] = []
+    positions: Position[] = []
 
 
     // Market Info
-    currentSymbol = 'BTCUSDT'
     isMarketConnected = false
+    currentSymbol = 'BTCUSDT'
+    exchangeInfo: any | null = null
+    marketSymbols: MarketSymbol[] = []
     private marketWS: WebSocket | null = null
     private userWS: WebSocket | null = null
     tradeHistory: any[] = []
     orderBook = { a: [], b: [], loaded: false }
-    symbolTicker: Ticker | null = null
+    symbolTicker: Map<string, MiniTicker> = new Map()
     symbolMarkPrice: Map<string, MarkPrice> = new Map()
 
-    private static instance: FuturesTradeStore | null = null;
+    private static instance: FuturesTradeStore | null = null
 
     static getInstance(): FuturesTradeStore {
         if (!FuturesTradeStore.instance) {
-            FuturesTradeStore.instance = new FuturesTradeStore();
+            FuturesTradeStore.instance = new FuturesTradeStore()
         }
 
-        return FuturesTradeStore.instance;
+        return FuturesTradeStore.instance
     }
 
     constructor() {
@@ -58,18 +60,27 @@ class FuturesTradeStore {
         }
     }
 
+    changeCurrentSymbol = (symbol: string) => {
+        runInAction(() => {
+            this.currentSymbol = symbol
+            this.exchangeInfo = null
+            this.tradeHistory = []
+            this.orderBook = { a: [], b: [], loaded: false }
+            this.symbolTicker.clear()
+            this.symbolMarkPrice.clear()
+        })
+
+
+        this.marketWS?.close()
+        this.marketWS = null
+
+        this.loadAllFromBinance()
+        this.initMarketSocket()
+    }
+
     loadAll = () => {
         this.fetchOrders()
         this.fetchPositions()
-    }
-
-
-    fetchTradeHistory = async () => {
-        const res = await client.get(endpoints.tradeHistory)
-        const tradeHistory = [...res.data]
-        runInAction(() => {
-            this.tradeHistory = tradeHistory
-        })
     }
 
     fetchOrders = async () => {
@@ -89,15 +100,22 @@ class FuturesTradeStore {
     }
 
     loadAllFromBinance = async () => {
-        const symbol = 'BTCUSDT'
-        const trades = await binanceClient.futuresAggTrades({ symbol: symbol, limit: 10 })
+        const exchangeInfo = await binanceClient.futuresExchangeInfo()
+        const orderBookres = await binanceClient.futuresBook({ symbol: this.currentSymbol, limit: 10 })
+        const asksArray = orderBookres.asks.map((entry: any) => [parseFloat(entry.price), parseFloat(entry.quantity)])
+        const bidsArray = orderBookres.bids.map((entry: any) => [parseFloat(entry.price), parseFloat(entry.quantity)])
+        const orderBook = { a: asksArray, b: bidsArray }
+        const trades = await binanceClient.futuresAggTrades({ symbol: this.currentSymbol, limit: 10 })
         const accInfo: AccountInfo = await binanceClient.futuresAccountInfo()
         const orders = await binanceClient.futuresOpenOrders({
-            symbol: symbol
-        });
+            symbol: this.currentSymbol
+        })
         // const positions = await binanceClient.futuresPositionRisk()
         const openPositions = accInfo.positions.filter((position) => parseFloat(position.positionAmt) !== 0)
         runInAction(() => {
+            this.exchangeInfo = exchangeInfo
+            this.marketSymbols = exchangeInfo.symbols.filter((s: MarketSymbol) => s.status === 'TRADING' && s.contractType === 'PERPETUAL')
+            this.orderBook = { a: orderBook.a, b: orderBook.b, loaded: true }
             this.totalWalletBalance = parseFloat(accInfo.totalWalletBalance)
             this.totalMarginBalance = parseFloat(accInfo.totalMarginBalance)
             this.totalPNL = parseFloat(accInfo.totalUnrealizedProfit)
@@ -107,8 +125,39 @@ class FuturesTradeStore {
         })
     }
 
+
+    async placeOrder(
+        side: string,
+        orderType: "LIMIT" | "MARKET" | "STOP" | string,
+        orderSize: number,
+        orderPrice?: number,
+        stopPrice?: number
+    ) {
+        const orderParams: any = {
+            symbol: this.currentSymbol,
+            side,
+            quantity: orderSize,
+            type: orderType,
+        }
+
+        if (orderType === "LIMIT" || orderType === "STOP") {
+            orderParams.price = orderPrice
+        }
+
+        if (orderType === "LIMIT") {
+            orderParams.timeInForce = "GTC"
+        }
+
+        if (orderType === "STOP") {
+            orderParams.stopPrice = stopPrice
+        }
+
+        await binanceClient.futuresOrder(orderParams)
+    }
+
     initMarketSocket() {
         this.marketWS = new WebSocket(`${WsBase}/stream`)
+        const symbol = this.currentSymbol.toLocaleLowerCase()
 
         this.marketWS.onopen = () => {
             runInAction(() => {
@@ -119,11 +168,10 @@ class FuturesTradeStore {
             const message = {
                 method: "SUBSCRIBE",
                 params: [
-                    "btcusdt@aggSnap",
-                    "btcusdt@ticker",
-                    // "btcusdt@markPrice",
+                    `${symbol}@aggSnap`,
+                    `${symbol}@depth10@500ms`,
+                    "!miniTicker@arr",
                     "!markPrice@arr@1s",
-                    "btcusdt@depth10@500ms",
                 ],
                 id: 1,
             }
@@ -137,45 +185,25 @@ class FuturesTradeStore {
             if (!data) return
 
             if (Array.isArray(data)) {
+                if (data.length === 0) return
+                const checkTypeOf = data[0]
 
-                const newMap = new Map<string, MarkPrice>();
-                for (let symbol of data as MarkPrice[]) {
-                    newMap.set(symbol.s, symbol)
+                if ('c' in checkTypeOf) {
+                    this.processMiniTickers(data as MiniTicker[])
+                } else {
+                    this.processMarkPrices(data as MarkPrice[])
                 }
-                runInAction(() => {
-                    this.symbolMarkPrice = newMap
-                })
-
             } else {
-
-                if (data.e === 'aggSnap') {
-                    runInAction(() => {
-                        if (this.tradeHistory.length < 10) {
-                            this.tradeHistory = [data, ...this.tradeHistory]
-                        } else {
-                            this.tradeHistory.pop()
-                            this.tradeHistory = [data, ...this.tradeHistory]
-                        }
-                    })
-                }
-
-                // if (data.e === 'markPriceUpdate') {
-                //     runInAction(() => {
-                //         this.symbolMarkPrice = data
-                //     })
-                // }
-
-                if (data.e === 'depthUpdate') {
-                    runInAction(() => {
-                        const { a, b } = data
-                        this.orderBook = { a: a, b: b, loaded: true }
-                    })
-                }
-
-                if (data.e === '24hrTicker') {
-                    runInAction(() => {
-                        this.symbolTicker = data
-                    })
+                const eventType = data.e
+                switch (eventType) {
+                    case 'aggSnap':
+                        this.processAggSnap(data)
+                        break
+                    case 'depthUpdate':
+                        this.processDepthUpdate(data)
+                        break
+                    default:
+                        console.error('Unknown event type:', eventType)
                 }
             }
         }
@@ -183,7 +211,7 @@ class FuturesTradeStore {
         this.marketWS.onerror = (error) => {
             console.log('Market WebSocket error:', error)
             this.initMarketSocket()
-        };
+        }
 
         this.marketWS.onclose = () => {
             console.log("Market WebSocket Closed")
@@ -191,6 +219,40 @@ class FuturesTradeStore {
                 this.isMarketConnected = false
             })
         }
+    }
+
+    private processMiniTickers(data: MiniTicker[]) {
+        const newMap = new Map<string, MiniTicker>([...this.symbolTicker])
+        
+        for (let ticker of data) {
+            newMap.set(ticker.s, ticker)
+        }
+        runInAction(() => {
+            this.symbolTicker = newMap
+        })
+    }
+
+    private processMarkPrices(data: MarkPrice[]) {
+        const newMap = new Map<string, MarkPrice>()
+        for (let symbol of data) {
+            newMap.set(symbol.s, symbol)
+        }
+        runInAction(() => {
+            this.symbolMarkPrice = newMap
+        })
+    }
+
+    private processAggSnap(data: any) {
+        runInAction(() => {
+            this.tradeHistory = [data, ...this.tradeHistory.slice(0, 9)]
+        })
+    }
+
+    private processDepthUpdate(data: any) {
+        const { a, b } = data
+        runInAction(() => {
+            this.orderBook = { a, b, loaded: true }
+        })
     }
 
 
@@ -214,7 +276,7 @@ class FuturesTradeStore {
         this.userWS.onerror = (error) => {
             console.log('User WebSocket error:', error)
             this.initUserSocker()
-        };
+        }
 
         this.userWS.onclose = () => {
             console.log("User WebSocket Closed")
@@ -247,7 +309,7 @@ class FuturesTradeStore {
     }
 
     clean() {
-        console.log("Clean was called");
+        console.log("Clean was called")
 
         this.marketWS?.close()
         this.userWS?.close()
