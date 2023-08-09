@@ -32,7 +32,7 @@ class FuturesTradeStore {
     private userWS: WebSocket | null = null
     tradeHistory: any[] = []
     orderBook = { a: [], b: [], loaded: false }
-    symbolTicker: Map<string, MiniTicker> = new Map()
+    symbolTicker: Map<string, Ticker> = new Map()
     symbolMarkPrice: Map<string, MarkPrice> = new Map()
 
     private static instance: FuturesTradeStore | null = null
@@ -61,6 +61,7 @@ class FuturesTradeStore {
     }
 
     changeCurrentSymbol = (symbol: string) => {
+        if (symbol === this.currentSymbol) return
         runInAction(() => {
             this.currentSymbol = symbol
             this.exchangeInfo = null
@@ -101,6 +102,7 @@ class FuturesTradeStore {
 
     loadAllFromBinance = async () => {
         const exchangeInfo = await binanceClient.futuresExchangeInfo()
+        const stats = await binanceClient.dailyStats()
         const orderBookres = await binanceClient.futuresBook({ symbol: this.currentSymbol, limit: 10 })
         const asksArray = orderBookres.asks.map((entry: any) => [parseFloat(entry.price), parseFloat(entry.quantity)])
         const bidsArray = orderBookres.bids.map((entry: any) => [parseFloat(entry.price), parseFloat(entry.quantity)])
@@ -114,6 +116,31 @@ class FuturesTradeStore {
         const openPositions = accInfo.positions.filter((position) => parseFloat(position.positionAmt) !== 0)
         runInAction(() => {
             this.exchangeInfo = exchangeInfo
+            if (Array.isArray(stats)) {
+                for (const data of stats) {
+                    const ticker: Ticker = {
+                        e: "24hrTicker",
+                        E: data.closeTime,
+                        s: data.symbol,
+                        p: data.priceChange,
+                        P: data.priceChangePercent,
+                        w: data.weightedAvgPrice,
+                        c: data.lastPrice,
+                        Q: data.lastQty,
+                        o: data.openPrice,
+                        h: data.highPrice,
+                        l: data.lowPrice,
+                        v: data.volume,
+                        q: data.quoteVolume,
+                        O: data.openTime,
+                        C: data.closeTime,
+                        F: data.firstId,
+                        L: data.lastId,
+                        n: data.count,
+                    }
+                    this.symbolTicker.set(ticker.s, ticker)
+                }
+            }
             this.marketSymbols = exchangeInfo.symbols.filter((s: MarketSymbol) => s.status === 'TRADING' && s.contractType === 'PERPETUAL')
             this.orderBook = { a: orderBook.a, b: orderBook.b, loaded: true }
             this.totalWalletBalance = parseFloat(accInfo.totalWalletBalance)
@@ -170,7 +197,8 @@ class FuturesTradeStore {
                 params: [
                     `${symbol}@aggSnap`,
                     `${symbol}@depth10@500ms`,
-                    "!miniTicker@arr",
+                    "!ticker@arr",
+                    // "!miniTicker@arr",
                     "!markPrice@arr@1s",
                 ],
                 id: 1,
@@ -189,7 +217,7 @@ class FuturesTradeStore {
                 const checkTypeOf = data[0]
 
                 if ('c' in checkTypeOf) {
-                    this.processMiniTickers(data as MiniTicker[])
+                    this.processMiniTickers(data as Ticker[])
                 } else {
                     this.processMarkPrices(data as MarkPrice[])
                 }
@@ -221,9 +249,9 @@ class FuturesTradeStore {
         }
     }
 
-    private processMiniTickers(data: MiniTicker[]) {
-        const newMap = new Map<string, MiniTicker>([...this.symbolTicker])
-        
+    private processMiniTickers(data: Ticker[]) {
+        const newMap = new Map<string, Ticker>([...this.symbolTicker])
+
         for (let ticker of data) {
             newMap.set(ticker.s, ticker)
         }

@@ -3,6 +3,7 @@ import {
     Text,
     StyleSheet,
     StatusBar,
+    TouchableOpacity,
 } from 'react-native'
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import OrdersList from './OrdersList'
@@ -10,6 +11,7 @@ import PositionsList from './PositionsList'
 import OrderBook from '../../components/OrderBook'
 import WebView from 'react-native-webview'
 import {
+    BottomSheetBackdrop,
     BottomSheetModal,
 } from '@gorhom/bottom-sheet';
 import { Button } from 'react-native-paper';
@@ -22,6 +24,7 @@ import { TabItemProps, Tabs } from 'react-native-collapsible-tab-view'
 import Snackbar from 'react-native-snackbar'
 import TradeHistory from '../../components/TradeHistory'
 import ExchangeInfo from '../../components/ExchangeInfo'
+import SelectSymbol from './SelectSymbol'
 
 
 const Trade = observer(() => {
@@ -29,6 +32,7 @@ const Trade = observer(() => {
     const [activeTab, setActiveTab] = useState(0)
     const placeOrderSheetRef = useRef<BottomSheetModal | null>(null)
     const enableFuturesSheetRef = useRef<BottomSheetModal | null>(null)
+    const selectSymbolSheetRef = useRef<BottomSheetModal | null>(null)
 
 
     useEffect(() => {
@@ -74,7 +78,11 @@ const Trade = observer(() => {
         return (
             <View style={{ width: '100%' }}>
                 <View style={{ padding: 10 }}>
-                    <ExchangeInfo />
+                    <TouchableOpacity onPress={() => {
+                        selectSymbolSheetRef.current?.present()
+                    }}>
+                        <ExchangeInfo />
+                    </TouchableOpacity>
                 </View>
                 <WebView
                     style={{ backgroundColor: "transparent", aspectRatio: 1 }}
@@ -105,12 +113,21 @@ const Trade = observer(() => {
     const close = () => {
         placeOrderSheetRef?.current?.close()
         enableFuturesSheetRef?.current?.close()
+        selectSymbolSheetRef.current?.close()
     }
 
     const renderTabText = useCallback(({ name, index }: TabItemProps<any>) => (
         <Text style={{ color: index === activeTab ? 'white' : 'rgba(255, 255, 255, 0.5)' }}>{name}</Text>
     ), [activeTab])
 
+
+    const renderBackdrop = useCallback((props: any) => (
+        <BottomSheetBackdrop
+            {...props}
+            disappearsOnIndex={-1}
+            appearsOnIndex={0}
+        />
+    ), [])
 
     return (
         <View style={styles.container}>
@@ -154,6 +171,7 @@ const Trade = observer(() => {
             <BottomSheetModal
                 ref={placeOrderSheetRef}
                 index={0}
+                backdropComponent={renderBackdrop}
                 enablePanDownToClose
                 snapPoints={['100%']}
                 backgroundStyle={{
@@ -167,6 +185,7 @@ const Trade = observer(() => {
             <BottomSheetModal
                 ref={enableFuturesSheetRef}
                 index={0}
+                backdropComponent={renderBackdrop}
                 enablePanDownToClose
                 snapPoints={['100%']}
                 backgroundStyle={{
@@ -176,6 +195,20 @@ const Trade = observer(() => {
                     backgroundColor: 'white'
                 }}>
                 <EnableFutures close={close} />
+            </BottomSheetModal>
+            <BottomSheetModal
+                ref={selectSymbolSheetRef}
+                index={0}
+                backdropComponent={renderBackdrop}
+                enablePanDownToClose
+                snapPoints={['100%']}
+                backgroundStyle={{
+                    backgroundColor: '#161A1E',
+                }}
+                handleIndicatorStyle={{
+                    backgroundColor: 'white'
+                }}>
+                <SelectSymbol close={close} />
             </BottomSheetModal>
         </View>
     )

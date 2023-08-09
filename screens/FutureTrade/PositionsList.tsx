@@ -1,15 +1,20 @@
-import { View, Text, useWindowDimensions, StyleSheet } from 'react-native'
-import React, { useEffect } from 'react'
+import { View, Text, useWindowDimensions, StyleSheet, TouchableOpacity } from 'react-native'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { observer } from 'mobx-react'
 import futuresTradeStore from '../../stores/FuturesTradeStore'
 import { StreamPosition, Position } from '../../types/BinanceTypes'
 import { Tabs } from 'react-native-collapsible-tab-view'
 import { Button } from 'react-native-paper'
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
+import { BottomSheetBackdrop, BottomSheetModal } from '@gorhom/bottom-sheet'
+import SharePosition from './SharePosition'
 
 
 const PositionsList = observer(() => {
 
     const size = useWindowDimensions()
+    const shareSheetRef = useRef<BottomSheetModal | null>(null)
+    const [currentSharePosition, setSharePosition] = useState<Position | null>(null)
 
     useEffect(() => {
         // This will force the component to re-render on changes to the observed data
@@ -21,6 +26,11 @@ const PositionsList = observer(() => {
                 <Text style={{ color: 'rgba(255, 255, 255, 0.5)' }}>You have no open positions.</Text>
             </View>
         )
+    }
+
+    const showShareSheet = (position: Position) => {
+        setSharePosition(position)
+        shareSheetRef.current?.present()
     }
 
     const renderPosition = ({ item }: { item: StreamPosition | Position | any }) => {
@@ -48,7 +58,12 @@ const PositionsList = observer(() => {
                 <View style={style.row}>
                     <Text style={style.symbol}>{symbol}</Text>
                     <View style={style.cell}>
-                        <Text style={{ ...style.title, ...style.textRight }}>{leverage}x</Text>
+                        <TouchableOpacity onPress={() => showShareSheet(item)}>
+                            <View style={{ alignSelf: 'flex-end', alignItems: 'flex-end' }}>
+                                <MaterialCommunityIcons name="share-variant" color={"white"} size={12} />
+                                <Text style={{ ...style.title, ...style.textRight, marginTop: 5 }}>{leverage}X</Text>
+                            </View>
+                        </TouchableOpacity>
                     </View>
                 </View>
                 <View style={style.row}>
@@ -67,40 +82,59 @@ const PositionsList = observer(() => {
                 </View>
                 <View style={style.row}>
                     <View style={style.cell}>
-                        <Text style={style.title}>Margin</Text>
-                        <Text style={style.item}>{margin.toFixed(2)}</Text>
+                        <Text style={style.title}>PNL(ROE %)</Text>
+                        <Text style={{ color: pnl < 0 ? 'red' : pnl > 0 ? 'green' : 'rgba(255, 255, 255, 0.5)', }}>{pnl}</Text>
+                        <Text style={{ color: roe < 0 ? 'red' : roe > 0 ? 'green' : 'rgba(255, 255, 255, 0.5)', }}>({roe}%)</Text>
+                    </View>
+                    <View style={style.cell}>
+                        <Text style={{ ...style.title, ...style.textRight }}>Margin</Text>
+                        <Text style={{ ...style.item, ...style.textRight }}>{margin.toFixed(2)}</Text>
                     </View>
                     <View style={style.cell}>
                         <Text style={{ ...style.title, ...style.textRight }}>Liq.Price</Text>
                         <Text style={{ ...style.item, ...style.textRight }}>--</Text>
                     </View>
                 </View>
-                <View style={style.row}>
-                    <View style={style.cell}>
-                        <Text style={style.title}>PNL(ROE %)</Text>
-                        <Text style={{ color: pnl < 0 ? 'red' : pnl > 0 ? 'green' : 'rgba(255, 255, 255, 0.5)', }}>{pnl}</Text>
-                        <Text style={{ color: roe < 0 ? 'red' : roe > 0 ? 'green' : 'rgba(255, 255, 255, 0.5)', }}>({roe}%)</Text>
-
-                    </View>
-                </View>
-                <View style={{ ...style.row, marginVertical: 10, }}>
+                {/* <View style={{ ...style.row, marginVertical: 10, }}>
                     <Button style={{ flex: 1, marginHorizontal: 5, backgroundColor: 'lightblue', }} onPress={() => { }}>
                         <Text style={{ color: 'black' }}>Stop PNL</Text>
                     </Button>
                     <Button style={{ flex: 1, marginHorizontal: 5, backgroundColor: 'lightblue', }} onPress={() => { }}>
                         <Text style={{ color: 'black' }}>Close</Text>
                     </Button>
-                </View>
+                </View> */}
             </View>
         )
     }
 
-    return (
-        <Tabs.FlatList
-            data={futuresTradeStore.positions}
-            renderItem={renderPosition}
-            ListEmptyComponent={renderemptyPositions}
+    const renderBackdrop = useCallback((props: any) => (
+        <BottomSheetBackdrop
+            {...props}
+            disappearsOnIndex={-1}
+            appearsOnIndex={0}
         />
+    ), [])
+
+    return (
+        <>
+            <Tabs.FlatList
+                data={futuresTradeStore.positions}
+                renderItem={renderPosition}
+                ListEmptyComponent={renderemptyPositions}
+            />
+            <BottomSheetModal
+                ref={shareSheetRef}
+                index={0}
+                backdropComponent={renderBackdrop}
+                backgroundStyle={{
+                    backgroundColor: 'transparent',
+                }}
+                handleIndicatorStyle={{ display: 'none' }}
+                enablePanDownToClose
+                snapPoints={['100%']}>
+                {currentSharePosition && <SharePosition position={currentSharePosition!} close={() => shareSheetRef.current?.close()} />}
+            </BottomSheetModal>
+        </>
     )
 })
 
@@ -130,7 +164,7 @@ const style = StyleSheet.create({
     title: {
         // color: 'rgba(255, 255, 255, 0.5)',
         color: 'white',
-        fontSize: 12
+        fontSize: 14
     },
     item: {
         // color: 'rgba(255, 255, 255, 0.5)',

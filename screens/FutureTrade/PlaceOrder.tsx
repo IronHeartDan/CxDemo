@@ -9,17 +9,19 @@ import Snackbar from 'react-native-snackbar'
 import TradeHistory from '../../components/TradeHistory';
 
 
-const orderTypes = [
-    "LIMIT",
-    "MARKET",
-    "STOP"
-]
+const OrderTypes = {
+    LIMIT: "LIMIT",
+    MARKET: "MARKET",
+    STOP: "STOP",
+} as const
+
+type OrderType = (typeof OrderTypes)[keyof typeof OrderTypes]
 
 const PlaceOrder = observer(({ close }: { close: any }) => {
 
     const [loading, setLoading] = useState(false)
 
-    const [orderType, setOrderType] = useState<string>(orderTypes[0])
+    const [orderType, setOrderType] = useState<OrderType>(OrderTypes.LIMIT)
     const [orderPrice, setOrderPrice] = useState('')
     const [orderSize, setOrderSize] = useState('')
     const [orderStopPrice, setOrderStopPrice] = useState('')
@@ -56,21 +58,21 @@ const PlaceOrder = observer(({ close }: { close: any }) => {
         }
     }
 
-    const renderOrderType = useCallback(({ item, index }: { item: string, index: number }) => {
+    const renderOrderType = useCallback(({ item, index }: { item: OrderType, index: number }) => {
 
         return (
             <Chip
                 key={index}
-                onPress={() => setOrderType(orderTypes[index])}
+                onPress={() => setOrderType(item)}
                 style={{
-                    backgroundColor: orderType === orderTypes[index] ? '#18448D' : '#ccc',
+                    backgroundColor: orderType === item ? '#18448D' : '#ccc',
                     elevation: 4,
                     marginVertical: 4,
                     marginHorizontal: 4,
                     marginStart: index === 0 ? 0 : 4
                 }}
                 textStyle={{
-                    color: orderType === orderTypes[index] ? 'white' : '#18448D',
+                    color: orderType === item ? 'white' : '#18448D',
                     paddingHorizontal: 12,
                 }}
             >{item}
@@ -95,13 +97,13 @@ const PlaceOrder = observer(({ close }: { close: any }) => {
                 <View style={{ marginTop: 10 }}>
                     <FlatList
                         horizontal
-                        data={Object.values(orderTypes)}
+                        data={Object.values(OrderTypes)}
                         renderItem={renderOrderType}
                     />
                 </View>
 
                 <View style={{ marginTop: 10 }}>
-                    {orderType === orderTypes[2] && <View style={styles.inputCon}>
+                    {orderType === OrderTypes.STOP && <View style={styles.inputCon}>
                         <Text>Stop Price</Text>
                         <TextInput style={styles.textInput} keyboardType="number-pad"
                             onChangeText={setOrderStopPrice}
@@ -111,7 +113,7 @@ const PlaceOrder = observer(({ close }: { close: any }) => {
                         <Text>USDT</Text>
                     </View>}
 
-                    {orderType !== orderTypes[1] && <View style={styles.inputCon}>
+                    {orderType !== OrderTypes.MARKET && <View style={styles.inputCon}>
                         <Text>Price</Text>
                         <TextInput style={styles.textInput} keyboardType="number-pad"
                             onChangeText={setOrderPrice}

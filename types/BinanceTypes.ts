@@ -219,7 +219,7 @@ type FilterType =
 
 type TimeInForce = 'GTC' | 'IOC' | 'FOK' | 'GTX';
 
-type OrderType =
+export type OrderType =
     | 'LIMIT'
     | 'MARKET'
     | 'STOP'
