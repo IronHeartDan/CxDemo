@@ -110,7 +110,9 @@ const PlaceOrder = observer(({ close }: { close: any }) => {
                             value={orderStopPrice}
                             placeholder='0'
                         />
-                        <Text>USDT</Text>
+                        {futuresTradeStore.marketSymbols.has(futuresTradeStore.currentSymbol) && <Text>
+                            {futuresTradeStore.marketSymbols.get(futuresTradeStore.currentSymbol)!.quoteAsset}
+                        </Text>}
                     </View>}
 
                     {orderType !== OrderTypes.MARKET && <View style={styles.inputCon}>
@@ -120,7 +122,9 @@ const PlaceOrder = observer(({ close }: { close: any }) => {
                             value={orderPrice}
                             placeholder='0'
                         />
-                        <Text>USDT</Text>
+                        {futuresTradeStore.marketSymbols.has(futuresTradeStore.currentSymbol) && <Text>
+                            {futuresTradeStore.marketSymbols.get(futuresTradeStore.currentSymbol)!.quoteAsset}
+                        </Text>}
                     </View>}
 
                     <View style={styles.inputCon}>
@@ -130,7 +134,9 @@ const PlaceOrder = observer(({ close }: { close: any }) => {
                             value={orderSize}
                             placeholder='0'
                         />
-                        <Text>BTC</Text>
+                        {futuresTradeStore.marketSymbols.has(futuresTradeStore.currentSymbol) && <Text>
+                            {futuresTradeStore.marketSymbols.get(futuresTradeStore.currentSymbol)!.baseAsset}
+                        </Text>}
                     </View>
                 </View>
 

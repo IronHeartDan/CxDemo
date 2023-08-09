@@ -27,7 +27,7 @@ class FuturesTradeStore {
     isMarketConnected = false
     currentSymbol = 'BTCUSDT'
     exchangeInfo: any | null = null
-    marketSymbols: MarketSymbol[] = []
+    marketSymbols: Map<string, MarketSymbol> = new Map()
     private marketWS: WebSocket | null = null
     private userWS: WebSocket | null = null
     tradeHistory: any[] = []
@@ -102,6 +102,10 @@ class FuturesTradeStore {
 
     loadAllFromBinance = async () => {
         const exchangeInfo = await binanceClient.futuresExchangeInfo()
+        const marketSymbols: Map<string, MarketSymbol> = new Map()
+        exchangeInfo.symbols.filter((s: MarketSymbol) => s.status === 'TRADING' && s.contractType === 'PERPETUAL').forEach((symbol: MarketSymbol) => {
+            marketSymbols.set(symbol.symbol, symbol)
+        })
         const stats = await binanceClient.dailyStats()
         const orderBookres = await binanceClient.futuresBook({ symbol: this.currentSymbol, limit: 10 })
         const asksArray = orderBookres.asks.map((entry: any) => [parseFloat(entry.price), parseFloat(entry.quantity)])
@@ -141,7 +145,7 @@ class FuturesTradeStore {
                     this.symbolTicker.set(ticker.s, ticker)
                 }
             }
-            this.marketSymbols = exchangeInfo.symbols.filter((s: MarketSymbol) => s.status === 'TRADING' && s.contractType === 'PERPETUAL')
+            this.marketSymbols = marketSymbols
             this.orderBook = { a: orderBook.a, b: orderBook.b, loaded: true }
             this.totalWalletBalance = parseFloat(accInfo.totalWalletBalance)
             this.totalMarginBalance = parseFloat(accInfo.totalMarginBalance)

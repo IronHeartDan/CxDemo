@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { TouchableOpacity, BottomSheetFlatList, BottomSheetFlatListMethods } from '@gorhom/bottom-sheet'
 import futuresTradeStore from '../../stores/FuturesTradeStore'
-import { TextInput } from 'react-native-paper'
+import { Searchbar, TextInput } from 'react-native-paper'
 import { observer } from 'mobx-react'
 import { MarketSymbol } from '../../types/BinanceTypes'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
@@ -53,22 +53,26 @@ const SelectSymbol = observer(({ close }: any) => {
     const [symbols, setSymbols] = useState<MarketSymbol[]>([])
 
     useEffect(() => {
-        setSymbols(futuresTradeStore.marketSymbols)
+        setSymbols(Array.from(futuresTradeStore.marketSymbols.values()))
     }, [futuresTradeStore.marketSymbols])
 
     useEffect(() => {
+        const marketSymbols = Array.from(futuresTradeStore.marketSymbols.values())
         if (searchText.length > 0) {
-            const filtered = futuresTradeStore.marketSymbols.filter((s) => s.symbol.toLowerCase().startsWith(searchText))
+            const filtered = marketSymbols.filter((s) => s.symbol.toLowerCase().startsWith(searchText.toLowerCase()))
             setSymbols(filtered)
         } else {
-            setSymbols(futuresTradeStore.marketSymbols)
+            setSymbols(marketSymbols)
         }
     }, [searchText])
 
     return (
         <View style={{ flex: 1 }}>
-            <TextInput placeholder='Search' style={{ margin: 10, borderRadius: 5, }}
+            <Searchbar
+                placeholder="Search"
+                style={{ margin: 10, borderRadius: 5, }}
                 onChangeText={setSearchText}
+                value={searchText}
             />
             <BottomSheetFlatList
                 data={symbols}

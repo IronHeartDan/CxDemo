@@ -1,25 +1,25 @@
-import React from 'react';
+import React from 'react'
 import {
   SafeAreaView,
   StatusBar,
   useColorScheme
-} from 'react-native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { NavigationContainer } from '@react-navigation/native';
-import CollectionScreen from './screens/OpenSea/CollectionScreen';
-import Trade from './screens/FutureTrade/Trade';
-import 'react-native-gesture-handler';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { PaperProvider } from 'react-native-paper';
-import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import HomeScreen from './screens/OpenSea/HomeScreen';
-import DemoUI from './screens/DemoUI';
+} from 'react-native'
+import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import { NavigationContainer } from '@react-navigation/native'
+import CollectionScreen from './screens/OpenSea/CollectionScreen'
+import Trade from './screens/FutureTrade/Trade'
+import 'react-native-gesture-handler'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { PaperProvider } from 'react-native-paper'
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'
+import HomeScreen from './screens/OpenSea/HomeScreen'
+import DemoUI from './screens/DemoUI'
 
 
 const Stack = createNativeStackNavigator()
 
 function App(): JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+  const isDarkMode = useColorScheme() === 'dark'
   return (
     <PaperProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
@@ -66,7 +66,7 @@ function App(): JSX.Element {
         </BottomSheetModalProvider>
       </GestureHandlerRootView>
     </PaperProvider>
-  );
+  )
 }
 
-export default App;
+export default App

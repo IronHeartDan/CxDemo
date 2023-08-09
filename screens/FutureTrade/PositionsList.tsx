@@ -8,11 +8,15 @@ import { Button } from 'react-native-paper'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 import { BottomSheetBackdrop, BottomSheetModal } from '@gorhom/bottom-sheet'
 import SharePosition from './SharePosition'
+import ManagePosition from './ManagePosition'
 
 
 const PositionsList = observer(() => {
 
     const size = useWindowDimensions()
+    const manageSheetRef = useRef<BottomSheetModal | null>(null)
+    const [currentManagePosition, setManagePosition] = useState<Position | null>(null)
+
     const shareSheetRef = useRef<BottomSheetModal | null>(null)
     const [currentSharePosition, setSharePosition] = useState<Position | null>(null)
 
@@ -28,17 +32,22 @@ const PositionsList = observer(() => {
         )
     }
 
+    const showManageSheet = (position: Position) => {
+        setManagePosition(position)
+        manageSheetRef.current?.present()
+    }
+
     const showShareSheet = (position: Position) => {
         setSharePosition(position)
         shareSheetRef.current?.present()
     }
 
-    const renderPosition = ({ item }: { item: StreamPosition | Position | any }) => {
+    const renderPosition = ({ item }: { item: Position }) => {
 
-        const symbol = item.symbol ?? item.s
-        const leverage = Number(item.leverage ?? 0)
-        const positionAmount = Number(item.positionAmt ?? item.pa)
-        const entryPrice = Number(item.entryPrice ?? item.ep)
+        const symbol = item.symbol
+        const leverage = Number(item.leverage)
+        const positionAmount = Number(item.positionAmt)
+        const entryPrice = Number(item.entryPrice)
         const margin = Number(item.initialMargin)
         const initialEquity = entryPrice * positionAmount / leverage
         let pnl;
@@ -54,7 +63,7 @@ const PositionsList = observer(() => {
         const roe = Number(((pnl / initialEquity) * 100).toFixed(2))
 
         return (
-            <View key={item.s} style={style.card}>
+            <View key={symbol} style={style.card}>
                 <View style={style.row}>
                     <Text style={style.symbol}>{symbol}</Text>
                     <View style={style.cell}>
@@ -95,14 +104,17 @@ const PositionsList = observer(() => {
                         <Text style={{ ...style.item, ...style.textRight }}>--</Text>
                     </View>
                 </View>
-                {/* <View style={{ ...style.row, marginVertical: 10, }}>
-                    <Button style={{ flex: 1, marginHorizontal: 5, backgroundColor: 'lightblue', }} onPress={() => { }}>
+                <View style={{ ...style.row, marginVertical: 10, justifyContent: 'space-between' }}>
+                    <Button style={{ backgroundColor: 'white', }} onPress={() => { showManageSheet(item) }} icon="circle-edit-outline">
+                        <Text style={{ color: 'black' }}>Leverage</Text>
+                    </Button>
+                    <Button style={{ backgroundColor: 'white', }} onPress={() => { showManageSheet(item) }} icon="stop-circle-outline">
                         <Text style={{ color: 'black' }}>Stop PNL</Text>
                     </Button>
-                    <Button style={{ flex: 1, marginHorizontal: 5, backgroundColor: 'lightblue', }} onPress={() => { }}>
+                    <Button style={{ backgroundColor: 'white', }} onPress={() => { showManageSheet(item) }} icon="close">
                         <Text style={{ color: 'black' }}>Close</Text>
                     </Button>
-                </View> */}
+                </View>
             </View>
         )
     }
@@ -133,6 +145,18 @@ const PositionsList = observer(() => {
                 enablePanDownToClose
                 snapPoints={['100%']}>
                 {currentSharePosition && <SharePosition position={currentSharePosition!} close={() => shareSheetRef.current?.close()} />}
+            </BottomSheetModal>
+            <BottomSheetModal
+                ref={manageSheetRef}
+                index={0}
+                backdropComponent={renderBackdrop}
+                backgroundStyle={{
+                    backgroundColor: '#161A1E',
+                }}
+                handleIndicatorStyle={{ backgroundColor: 'white' }}
+                enablePanDownToClose
+                snapPoints={['60%']}>
+                {currentManagePosition && <ManagePosition position={currentManagePosition!} close={() => manageSheetRef.current?.close()} />}
             </BottomSheetModal>
         </>
     )
