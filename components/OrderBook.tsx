@@ -3,6 +3,7 @@ import { observer } from 'mobx-react'
 import { View, Text, StyleSheet } from 'react-native'
 import futuresTradeStore from '../stores/FuturesTradeStore'
 import SkeletonPlaceholder from 'react-native-skeleton-placeholder'
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 
 
 const OrderBook = observer(({ horizontal = false }) => {
@@ -37,6 +38,17 @@ const OrderBook = observer(({ horizontal = false }) => {
         }
 
         return dataWithSum
+    }
+
+    let percentage
+    let icon
+    let color
+
+    if (futuresTradeStore.symbolTicker.has(futuresTradeStore.currentSymbol)) {
+        const symbolTicker = futuresTradeStore.symbolTicker.get(futuresTradeStore.currentSymbol)!
+        percentage = Number(symbolTicker.P)
+        icon = percentage < 0 ? "arrow-down-drop-circle" : "arrow-up-drop-circle"
+        color = percentage < 0 ? "red" : "green"
     }
 
     if (!futuresTradeStore.orderBook.loaded) {
@@ -93,10 +105,25 @@ const OrderBook = observer(({ horizontal = false }) => {
                         </View>
                     ))}
                 </View>
-                <View style={styles.symbolPrice}>
-                    {futuresTradeStore.symbolTicker.has(futuresTradeStore.currentSymbol) && <Text style={styles.symbolPriceText}>
-                        {futuresTradeStore.symbolTicker.get(futuresTradeStore.currentSymbol)?.c.slice(0, 10)}
-                    </Text>}
+                <View style={styles.symbolInfo}>
+                    {futuresTradeStore.symbolTicker.has(futuresTradeStore.currentSymbol) &&
+                        <Text style={{ ...styles.symbolTickerText, color: color ?? 'white' }}>
+                            {Number(futuresTradeStore.symbolTicker.get(futuresTradeStore.currentSymbol)?.c).toFixed(2)}
+                        </Text>}
+
+                    {percentage && <MaterialCommunityIcons
+                        style={{
+                            marginStart: 10
+                        }}
+                        size={20}
+                        name={icon!}
+                        color={color!}
+                    />}
+
+                    {futuresTradeStore.symbolMarkPrice.has(futuresTradeStore.currentSymbol) &&
+                        <Text style={styles.symbolPriceText}>
+                            {Number(futuresTradeStore.symbolMarkPrice.get(futuresTradeStore.currentSymbol)?.p).toFixed(2)}
+                        </Text>}
                 </View>
                 <View>
                     {orderBookData.bids.map((bid, index) => (
@@ -167,12 +194,19 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         backgroundColor: '#161A1E',
     },
-    symbolPrice: {
-        marginVertical: 5,
+    symbolInfo: {
+        marginVertical: 10,
+        flexDirection: 'row',
+        alignItems: 'center'
     },
-    symbolPriceText: {
+    symbolTickerText: {
         fontSize: 24,
         color: 'white',
+    },
+    symbolPriceText: {
+        marginStart: 10,
+        fontSize: 16,
+        color: 'rgba(255, 255, 255, 0.5)',
     },
     orderBookHeader: {
         display: 'flex',

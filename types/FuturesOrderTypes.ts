@@ -32,9 +32,9 @@ export type FuturesOrderType_LT =
 
 export enum OrderType {
     LIMIT = 'LIMIT',
-    LIMIT_MAKER = 'LIMIT_MAKER',
     MARKET = 'MARKET',
     STOP = 'STOP',
+    LIMIT_MAKER = 'LIMIT_MAKER',
     STOP_MARKET = 'STOP_MARKET',
     STOP_LOSS_LIMIT = 'STOP_LOSS_LIMIT',
     TAKE_PROFIT_LIMIT = 'TAKE_PROFIT_LIMIT',

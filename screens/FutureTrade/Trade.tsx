@@ -23,7 +23,7 @@ import { observer } from 'mobx-react'
 import { TabItemProps, Tabs } from 'react-native-collapsible-tab-view'
 import Snackbar from 'react-native-snackbar'
 import TradeHistory from '../../components/TradeHistory'
-import ExchangeInfo from '../../components/ExchangeInfo'
+import SymbolInfo from '../../components/SymbolInfo'
 import SelectSymbol from './SelectSymbol'
 
 
@@ -81,7 +81,7 @@ const Trade = observer(() => {
                     <TouchableOpacity onPress={() => {
                         selectSymbolSheetRef.current?.present()
                     }}>
-                        <ExchangeInfo />
+                        <SymbolInfo />
                     </TouchableOpacity>
                 </View>
                 <WebView

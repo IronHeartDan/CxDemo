@@ -8,6 +8,7 @@ import binanceClient from '../../utils/BinanceClient'
 import Snackbar from 'react-native-snackbar'
 import { Button } from 'react-native-paper'
 import { OrderSide } from '../../types/FuturesOrderTypes'
+import moment from 'moment'
 
 
 const OrdersList = observer(() => {
@@ -25,11 +26,14 @@ const OrdersList = observer(() => {
     const renderOrder = ({ item }: { item: Order }) => {
 
         const orderId = item.orderId
-        const status = item.status
         const symbol = item.symbol
+        const status = item.status
         const side = item.side
+        const type = item.type
         const quantity = item.origQty
         const price = item.price
+        const date = moment.unix(item.time / 1000).local(true).format('YYYY-MM-DD')
+        const time = moment.unix(item.time / 1000).local(true).format('HH:mm:ss')
 
         const cancelOrder = async () => {
             await binanceClient.futuresCancelOrder({
@@ -48,25 +52,35 @@ const OrdersList = observer(() => {
         return (
             <View key={orderId} style={styles.card}>
                 <View style={styles.row}>
-                    <Text style={styles.symbol}>{symbol} / </Text>
                     <Text style={{ color: side === OrderSide.BUY ? 'green' : 'red' }}>{side}</Text>
+                    <Text style={styles.symbol}> / {symbol}</Text>
                 </View>
 
                 <View style={styles.row}>
                     <View style={styles.cell}>
-                        <Text style={styles.title}>Quantity</Text>
-                        <Text style={styles.item}>{quantity}</Text>
+                        <Text style={styles.title}>Type</Text>
+                        <Text style={{
+                            ...styles.item,
+                            textTransform: 'capitalize'
+                        }}>{type}</Text>
                     </View>
                     <View style={styles.cell}>
-                        <Text style={styles.title}>Price</Text>
-                        <Text style={styles.item}>{price}</Text>
+                        <Text style={{ ...styles.title, ...styles.textRight }}>Price</Text>
+                        <Text style={{ ...styles.item, ...styles.textRight }}>{price}</Text>
+                    </View>
+                    <View style={styles.cell}>
+                        <Text style={{ ...styles.title, ...styles.textRight }}>Size</Text>
+                        <Text style={{ ...styles.item, ...styles.textRight }}>{quantity}</Text>
                     </View>
                 </View>
-                <View style={{ ...styles.row, marginVertical: 10, justifyContent: 'flex-end' }}>
-                    <Button style={{ backgroundColor: 'white' }} onPress={cancelOrder} icon="close">
-                        <Text style={{ color: 'black' }}>Cancel</Text>
-                    </Button>
-                    {/* <Text style={{ color: "#f6465d" }}>Cancel</Text> */}
+                <View style={{ ...styles.row, marginTop: 20, marginBottom: 10, justifyContent: 'space-between' }}>
+                    <View>
+                        <Text style={{ color: 'white' }}>{date}</Text>
+                        <Text style={{ color: 'white' }}>{time}</Text>
+                    </View>
+                    <TouchableOpacity onPress={cancelOrder}>
+                        <Text style={{ color: "#f6465d" }}>Cancel</Text>
+                    </TouchableOpacity>
                 </View>
             </View>
         )

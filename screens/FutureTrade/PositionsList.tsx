@@ -48,10 +48,12 @@ const PositionsList = observer(() => {
         const leverage = Number(item.leverage)
         const positionAmount = Number(item.positionAmt)
         const entryPrice = Number(item.entryPrice)
-        const margin = Number(item.initialMargin)
+        const initialMargin = Number(item.positionInitialMargin)
+        const maintMargin = Number(item.maintMargin)
         const initialEquity = entryPrice * positionAmount / leverage
         let pnl;
         let marketPrice = 0
+        let liquidation
 
         if (futuresTradeStore.symbolMarkPrice.has(symbol)) {
             marketPrice = Number(futuresTradeStore.symbolMarkPrice.get(symbol)!.p);
@@ -61,6 +63,14 @@ const PositionsList = observer(() => {
         }
 
         const roe = Number(((pnl / initialEquity) * 100).toFixed(2))
+
+
+        if (marketPrice !== 0 && futuresTradeStore.marketSymbols.has(symbol)) {
+            const lastPrice = futuresTradeStore.symbolTicker.get(symbol)?.c ?? 0
+            const marketSymbol = futuresTradeStore.marketSymbols.get(symbol)!
+            const liquidationFee = Number(marketSymbol.liquidationFee)
+            liquidation = ((entryPrice * (1 + (1 / leverage)) - initialMargin - pnl) - (lastPrice - entryPrice) + liquidationFee).toFixed(2)
+        }
 
         return (
             <View key={symbol} style={styles.card}>
@@ -97,11 +107,12 @@ const PositionsList = observer(() => {
                     </View>
                     <View style={styles.cell}>
                         <Text style={{ ...styles.title, ...styles.textRight }}>Margin</Text>
-                        <Text style={{ ...styles.item, ...styles.textRight }}>{margin.toFixed(2)}</Text>
+                        <Text style={{ ...styles.item, ...styles.textRight }}>{initialMargin.toFixed(2)}</Text>
                     </View>
                     <View style={styles.cell}>
                         <Text style={{ ...styles.title, ...styles.textRight }}>Liq.Price</Text>
-                        <Text style={{ ...styles.item, ...styles.textRight }}>--</Text>
+                        {liquidation && <Text style={{ ...styles.item, ...styles.textRight }}>{liquidation}</Text>}
+                        {/* <Text style={{ ...styles.item, ...styles.textRight }}>--</Text> */}
                     </View>
                 </View>
                 <View style={{ ...styles.row, marginVertical: 10, justifyContent: 'space-between' }}>

@@ -114,7 +114,7 @@ class FuturesTradeStore {
         const orderBook = { a: asksArray, b: bidsArray }
         const trades = await binanceClient.futuresAggTrades({ symbol: this.currentSymbol, limit: 10 })
         const accInfo: AccountInfo = await binanceClient.futuresAccountInfo()
-        const orders = await binanceClient.futuresOpenOrders({
+        const orders: Order[] = await binanceClient.futuresOpenOrders({
             symbol: this.currentSymbol
         })
         // const positions = await binanceClient.futuresPositionRisk()
@@ -152,7 +152,7 @@ class FuturesTradeStore {
             this.totalMarginBalance = parseFloat(accInfo.totalMarginBalance)
             this.totalPNL = parseFloat(accInfo.totalUnrealizedProfit)
             this.tradeHistory = trades.reverse()
-            this.orders = orders
+            this.orders = orders.sort((a, b) => b.time - a.time)
             this.positions = openPositions
         })
     }

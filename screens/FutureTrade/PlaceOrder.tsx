@@ -9,6 +9,7 @@ import Snackbar from 'react-native-snackbar'
 import TradeHistory from '../../components/TradeHistory';
 import { FuturesOrderType_LT, LimitNewFuturesOrder, NewFuturesOrder, NewFuturesOrderBase, OrderSide, OrderSide_LT, OrderType } from '../../types/FuturesOrderTypes';
 import { FlatList } from 'react-native-gesture-handler';
+import SymbolInfo from '../../components/SymbolInfo';
 
 
 const PlaceOrder = observer(({ close }: { close: any }) => {
@@ -89,15 +90,7 @@ const PlaceOrder = observer(({ close }: { close: any }) => {
     return (
         <BottomSheetScrollView>
             <View style={styles.container}>
-                <View>
-                    <Text style={{ fontSize: 24, color: 'white' }}>{futuresTradeStore.currentSymbol}</Text>
-                    <View style={{ flexDirection: 'row' }}>
-                        <Text style={{ fontWeight: 'bold', color: 'green' }}>Live </Text>
-                        {futuresTradeStore.symbolTicker.has(futuresTradeStore.currentSymbol) && <Text style={{ color: 'white' }}>
-                            {futuresTradeStore.symbolTicker.get(futuresTradeStore.currentSymbol)?.c.slice(0, 10)}
-                        </Text>}
-                    </View>
-                </View>
+                <SymbolInfo />
 
                 <View style={{ marginTop: 10 }}>
                     <FlatList
