@@ -1,8 +1,9 @@
 import axios from "axios"
 import { makeAutoObservable, runInAction } from "mobx"
-import { Ticker, MarkPrice, StreamOrder, StreamPosition, TradeData, StreamTradeData, AccountInfo, Position, MarketSymbol, MiniTicker } from "../types/BinanceTypes"
+import { Ticker, MarkPrice, TradeData, StreamTradeData, AccountInfo, Position, MarketSymbol, Order } from "../types/BinanceTypes"
 import { client } from "../utils/ApiManage"
 import binanceClient from "../utils/BinanceClient"
+import { FuturesOrderType_LT, NewFuturesOrder, NewFuturesOrderBase, OrderSide_LT } from "../types/FuturesOrderTypes"
 // const WsBase = "wss://fstream.binance.com"
 const WsBase = "wss://testnet.binancefuture.com"
 
@@ -19,7 +20,7 @@ class FuturesTradeStore {
     totalWalletBalance = 0
     totalMarginBalance = 0
     totalPNL = 0
-    orders: StreamOrder[] = []
+    orders: Order[] = []
     positions: Position[] = []
 
 
@@ -86,7 +87,7 @@ class FuturesTradeStore {
 
     fetchOrders = async () => {
         const res = await client.get(endpoints.orders)
-        const resOrders: StreamOrder[] = [...res.data]
+        const resOrders: Order[] = [...res.data]
         runInAction(() => {
             this.orders = resOrders
         })
@@ -157,33 +158,59 @@ class FuturesTradeStore {
     }
 
 
-    async placeOrder(
-        side: string,
-        orderType: "LIMIT" | "MARKET" | "STOP" | string,
-        orderSize: number,
-        orderPrice?: number,
-        stopPrice?: number
-    ) {
-        const orderParams: any = {
+    placeOrder = async ({ side, orderType, orderQuantity, orderPrice, stopPrice }:
+        {
+            side: OrderSide_LT,
+            orderType: FuturesOrderType_LT,
+            orderQuantity: string,
+            orderPrice: string,
+            stopPrice: string
+        }) => {
+        const args: NewFuturesOrderBase = {
             symbol: this.currentSymbol,
-            side,
-            quantity: orderSize,
-            type: orderType,
+            side: side,
+            type: orderType
         }
 
-        if (orderType === "LIMIT" || orderType === "STOP") {
-            orderParams.price = orderPrice
+        let orderArgs: NewFuturesOrder
+
+        switch (orderType) {
+            case 'LIMIT':
+                orderArgs = {
+                    ...args,
+                    type: 'LIMIT',
+                    timeInForce: 'GTC',
+                    quantity: orderQuantity,
+                    price: orderPrice,
+                };
+                break;
+
+            case 'MARKET':
+                orderArgs = {
+                    ...args,
+                    type: 'MARKET',
+                    quantity: orderQuantity
+                };
+                break;
+
+            case 'STOP':
+                orderArgs = {
+                    ...args,
+                    type: 'STOP',
+                    quantity: orderQuantity,
+                    price: orderPrice,
+                    stopPrice: stopPrice
+                };
+                break;
+
+            // Add cases for other order types
+
+            default:
+                throw new Error(`Unsupported order type: ${orderType}`)
         }
 
-        if (orderType === "LIMIT") {
-            orderParams.timeInForce = "GTC"
-        }
 
-        if (orderType === "STOP") {
-            orderParams.stopPrice = stopPrice
-        }
-
-        await binanceClient.futuresOrder(orderParams)
+        await binanceClient.futuresOrder(orderArgs)
     }
 
     initMarketSocket() {

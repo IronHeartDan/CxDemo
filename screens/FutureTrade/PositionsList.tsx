@@ -2,7 +2,7 @@ import { View, Text, useWindowDimensions, StyleSheet, TouchableOpacity } from 'r
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { observer } from 'mobx-react'
 import futuresTradeStore from '../../stores/FuturesTradeStore'
-import { StreamPosition, Position } from '../../types/BinanceTypes'
+import { Position } from '../../types/BinanceTypes'
 import { Tabs } from 'react-native-collapsible-tab-view'
 import { Button } from 'react-native-paper'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
@@ -63,48 +63,48 @@ const PositionsList = observer(() => {
         const roe = Number(((pnl / initialEquity) * 100).toFixed(2))
 
         return (
-            <View key={symbol} style={style.card}>
-                <View style={style.row}>
-                    <Text style={style.symbol}>{symbol}</Text>
-                    <View style={style.cell}>
+            <View key={symbol} style={styles.card}>
+                <View style={styles.row}>
+                    <Text style={styles.symbol}>{symbol}</Text>
+                    <View style={styles.cell}>
                         <TouchableOpacity onPress={() => showShareSheet(item)}>
                             <View style={{ alignSelf: 'flex-end', alignItems: 'flex-end' }}>
                                 <MaterialCommunityIcons name="share-variant" color={"white"} size={12} />
-                                <Text style={{ ...style.title, ...style.textRight, marginTop: 5 }}>{leverage}X</Text>
+                                <Text style={{ ...styles.title, ...styles.textRight, marginTop: 5 }}>{leverage}X</Text>
                             </View>
                         </TouchableOpacity>
                     </View>
                 </View>
-                <View style={style.row}>
-                    <View style={style.cell}>
-                        <Text style={style.title}>Entry Price</Text>
-                        <Text style={style.item}>{Number(entryPrice).toFixed(2)}</Text>
+                <View style={styles.row}>
+                    <View style={styles.cell}>
+                        <Text style={styles.title}>Entry Price</Text>
+                        <Text style={styles.item}>{Number(entryPrice).toFixed(2)}</Text>
                     </View>
-                    <View style={style.cell}>
-                        <Text style={{ ...style.title, ...style.textRight }}>Mark Price</Text>
-                        <Text style={{ ...style.item, ...style.textRight }}>{marketPrice.toFixed(2)}</Text>
+                    <View style={styles.cell}>
+                        <Text style={{ ...styles.title, ...styles.textRight }}>Mark Price</Text>
+                        <Text style={{ ...styles.item, ...styles.textRight }}>{marketPrice.toFixed(2)}</Text>
                     </View>
-                    <View style={style.cell}>
-                        <Text style={{ ...style.title, ...style.textRight }}>Size</Text>
-                        <Text style={{ ...style.item, ...style.textRight }}>{positionAmount}</Text>
+                    <View style={styles.cell}>
+                        <Text style={{ ...styles.title, ...styles.textRight }}>Size</Text>
+                        <Text style={{ ...styles.item, ...styles.textRight }}>{positionAmount}</Text>
                     </View>
                 </View>
-                <View style={style.row}>
-                    <View style={style.cell}>
-                        <Text style={style.title}>PNL(ROE %)</Text>
+                <View style={styles.row}>
+                    <View style={styles.cell}>
+                        <Text style={styles.title}>PNL(ROE %)</Text>
                         <Text style={{ color: pnl < 0 ? 'red' : pnl > 0 ? 'green' : 'rgba(255, 255, 255, 0.5)', }}>{pnl}</Text>
                         <Text style={{ color: roe < 0 ? 'red' : roe > 0 ? 'green' : 'rgba(255, 255, 255, 0.5)', }}>({roe}%)</Text>
                     </View>
-                    <View style={style.cell}>
-                        <Text style={{ ...style.title, ...style.textRight }}>Margin</Text>
-                        <Text style={{ ...style.item, ...style.textRight }}>{margin.toFixed(2)}</Text>
+                    <View style={styles.cell}>
+                        <Text style={{ ...styles.title, ...styles.textRight }}>Margin</Text>
+                        <Text style={{ ...styles.item, ...styles.textRight }}>{margin.toFixed(2)}</Text>
                     </View>
-                    <View style={style.cell}>
-                        <Text style={{ ...style.title, ...style.textRight }}>Liq.Price</Text>
-                        <Text style={{ ...style.item, ...style.textRight }}>--</Text>
+                    <View style={styles.cell}>
+                        <Text style={{ ...styles.title, ...styles.textRight }}>Liq.Price</Text>
+                        <Text style={{ ...styles.item, ...styles.textRight }}>--</Text>
                     </View>
                 </View>
-                <View style={{ ...style.row, marginVertical: 10, justifyContent: 'space-between' }}>
+                <View style={{ ...styles.row, marginVertical: 10, justifyContent: 'space-between' }}>
                     <Button style={{ backgroundColor: 'white', }} onPress={() => { showManageSheet(item) }} icon="circle-edit-outline">
                         <Text style={{ color: 'black' }}>Leverage</Text>
                     </Button>
@@ -162,7 +162,7 @@ const PositionsList = observer(() => {
     )
 })
 
-const style = StyleSheet.create({
+const styles = StyleSheet.create({
     card: {
         margin: 10,
         padding: 5,

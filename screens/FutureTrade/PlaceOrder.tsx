@@ -1,5 +1,5 @@
-import { StyleSheet, View, Text, TextInput, FlatList } from 'react-native'
-import React, { useCallback, useEffect, useState } from 'react'
+import { StyleSheet, View, Text, TextInput } from 'react-native'
+import React, { useCallback, useState } from 'react'
 import { Button, Chip } from 'react-native-paper';
 import OrderBook from '../../components/OrderBook';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
@@ -7,37 +7,42 @@ import { observer } from 'mobx-react';
 import futuresTradeStore from '../../stores/FuturesTradeStore';
 import Snackbar from 'react-native-snackbar'
 import TradeHistory from '../../components/TradeHistory';
+import { FuturesOrderType_LT, LimitNewFuturesOrder, NewFuturesOrder, NewFuturesOrderBase, OrderSide, OrderSide_LT, OrderType } from '../../types/FuturesOrderTypes';
+import { FlatList } from 'react-native-gesture-handler';
 
-
-const OrderTypes = {
-    LIMIT: "LIMIT",
-    MARKET: "MARKET",
-    STOP: "STOP",
-} as const
-
-type OrderType = (typeof OrderTypes)[keyof typeof OrderTypes]
 
 const PlaceOrder = observer(({ close }: { close: any }) => {
 
     const [loading, setLoading] = useState(false)
 
-    const [orderType, setOrderType] = useState<OrderType>(OrderTypes.LIMIT)
+    const [orderType, setOrderType] = useState<FuturesOrderType_LT>(OrderType.LIMIT)
     const [orderPrice, setOrderPrice] = useState('')
-    const [orderSize, setOrderSize] = useState('')
+    const [orderQuantity, setOrderQuantity] = useState('')
     const [orderStopPrice, setOrderStopPrice] = useState('')
 
 
 
-    const placeOrder = async (side: any) => {
-        try {
-            await futuresTradeStore.placeOrder(
-                side,
-                orderType,
-                Number(orderSize),
-                Number(orderPrice),
-                Number(orderStopPrice)
-            )
+    const placeOrder = async (side: OrderSide_LT) => {
 
+        // if (orderPrice.length === 0 || orderQuantity.length === 0 || orderStopPrice.length === 0) {
+        //     Snackbar.show({
+        //         text: "Invalid Input",
+        //         duration: Snackbar.LENGTH_SHORT,
+        //         backgroundColor: 'white',
+        //         textColor: 'red'
+        //     });
+        //     return;
+        // }
+
+
+        try {
+            await futuresTradeStore.placeOrder({
+                side: side,
+                orderType: orderType,
+                orderQuantity: orderQuantity,
+                orderPrice: orderPrice,
+                stopPrice: orderStopPrice
+            })
             console.log('Order placed')
 
             if (close) close()
@@ -58,7 +63,7 @@ const PlaceOrder = observer(({ close }: { close: any }) => {
         }
     }
 
-    const renderOrderType = useCallback(({ item, index }: { item: OrderType, index: number }) => {
+    const renderOrderType = useCallback(({ item, index }: { item: FuturesOrderType_LT, index: number }) => {
 
         return (
             <Chip
@@ -97,13 +102,13 @@ const PlaceOrder = observer(({ close }: { close: any }) => {
                 <View style={{ marginTop: 10 }}>
                     <FlatList
                         horizontal
-                        data={Object.values(OrderTypes)}
+                        data={Object.values(OrderType) as FuturesOrderType_LT[]}
                         renderItem={renderOrderType}
                     />
                 </View>
 
                 <View style={{ marginTop: 10 }}>
-                    {orderType === OrderTypes.STOP && <View style={styles.inputCon}>
+                    {orderType === OrderType.STOP && <View style={styles.inputCon}>
                         <Text>Stop Price</Text>
                         <TextInput style={styles.textInput} keyboardType="number-pad"
                             onChangeText={setOrderStopPrice}
@@ -115,7 +120,7 @@ const PlaceOrder = observer(({ close }: { close: any }) => {
                         </Text>}
                     </View>}
 
-                    {orderType !== OrderTypes.MARKET && <View style={styles.inputCon}>
+                    {orderType !== OrderType.MARKET && <View style={styles.inputCon}>
                         <Text>Price</Text>
                         <TextInput style={styles.textInput} keyboardType="number-pad"
                             onChangeText={setOrderPrice}
@@ -130,8 +135,8 @@ const PlaceOrder = observer(({ close }: { close: any }) => {
                     <View style={styles.inputCon}>
                         <Text>Size</Text>
                         <TextInput style={styles.textInput} keyboardType="number-pad"
-                            onChangeText={setOrderSize}
-                            value={orderSize}
+                            onChangeText={setOrderQuantity}
+                            value={orderQuantity}
                             placeholder='0'
                         />
                         {futuresTradeStore.marketSymbols.has(futuresTradeStore.currentSymbol) && <Text>
@@ -147,7 +152,7 @@ const PlaceOrder = observer(({ close }: { close: any }) => {
                         buttonColor="#0ecb81"
                         dark
                         style={{ flex: 1, borderRadius: 5 }}
-                        onPress={() => placeOrder('BUY')}
+                        onPress={() => placeOrder(OrderSide.BUY)}
                     >
                         Buy/Long
                     </Button>
@@ -157,7 +162,7 @@ const PlaceOrder = observer(({ close }: { close: any }) => {
                         buttonColor="#f6465d"
                         dark
                         style={{ flex: 1, borderRadius: 5, marginStart: 10 }}
-                        onPress={() => placeOrder('SELL')}
+                        onPress={() => placeOrder(OrderSide.SELL)}
                     >
                         Sell/Short
                     </Button>
