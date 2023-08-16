@@ -4,21 +4,25 @@ import { observer } from 'mobx-react'
 import futuresTradeStore from '../../stores/FuturesTradeStore'
 import { Position } from '../../types/BinanceTypes'
 import { Tabs } from 'react-native-collapsible-tab-view'
-import { Button } from 'react-native-paper'
+import { Button, Divider } from 'react-native-paper'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
-import { BottomSheetBackdrop, BottomSheetModal } from '@gorhom/bottom-sheet'
+import { BottomSheetBackdrop, BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet'
 import SharePosition from './SharePosition'
 import ManagePosition from './ManagePosition'
+import PositionInfo from '../../components/PositionInfo'
+import HandlePositionLeverage from './HandlePositionLeverage'
 
+export type ManagePositionAction = 'CLOSE' | 'PNL' | 'LEVERAGE'
 
 const PositionsList = observer(() => {
 
     const size = useWindowDimensions()
-    const manageSheetRef = useRef<BottomSheetModal | null>(null)
-    const [currentManagePosition, setManagePosition] = useState<Position | null>(null)
 
+    const [currentPosition, setCurrentPosition] = useState<Position | null>(null)
+    const [currentManageAction, setManageAction] = useState<ManagePositionAction | null>(null)
+
+    const manageSheetRef = useRef<BottomSheetModal | null>(null)
     const shareSheetRef = useRef<BottomSheetModal | null>(null)
-    const [currentSharePosition, setSharePosition] = useState<Position | null>(null)
 
     useEffect(() => {
         // This will force the component to re-render on changes to the observed data
@@ -32,14 +36,67 @@ const PositionsList = observer(() => {
         )
     }
 
-    const showManageSheet = (position: Position) => {
-        setManagePosition(position)
+    const showShareSheet = (position: Position) => {
+        setCurrentPosition(position)
+        shareSheetRef.current?.present()
+    }
+
+    const showManageSheet = (position: Position, action: ManagePositionAction) => {
+        setCurrentPosition(position)
+        setManageAction(action)
         manageSheetRef.current?.present()
     }
 
-    const showShareSheet = (position: Position) => {
-        setSharePosition(position)
-        shareSheetRef.current?.present()
+    const calculateLiquidationPrice = (
+        WB: number,
+        TMM1: number,
+        UPNL1: number,
+        cumB: number,
+        cumL: number,
+        cumS: number,
+        Side1BOTH: number,
+        Position1BOTH: number,
+        EP1BOTH: number,
+        Position1LONG: number,
+        EP1LONG: number,
+        Position1SHORT: number,
+        EP1SHORT: number,
+        MMRB: number,
+        MMRL: number,
+        MMRS: number
+    ): number => {
+        const liquidationPrice =
+            (WB - TMM1 + UPNL1 + cumB + cumL + cumS - Side1BOTH * Position1BOTH * EP1BOTH - Position1LONG + Position1SHORT * EP1SHORT) /
+            (Position1BOTH * MMRB + Position1LONG * MMRL + Position1SHORT * MMRS - Side1BOTH * Position1BOTH - Position1LONG + Position1SHORT);
+
+        return liquidationPrice;
+    }
+
+    const getMaintMarginRatio = (positionValue: number): number => {
+        if (positionValue >= 0 && positionValue <= 50000) {
+            return 0.004; // 0.40%
+        } else if (positionValue > 50000 && positionValue <= 250000) {
+            return 0.005; // 0.50%
+        } else if (positionValue > 250000 && positionValue <= 3000000) {
+            return 0.01; // 1.00%
+        } else if (positionValue > 3000000 && positionValue <= 20000000) {
+            return 0.025; // 2.50%
+        } else if (positionValue > 20000000 && positionValue <= 40000000) {
+            return 0.05; // 5.00%
+        } else if (positionValue > 40000000 && positionValue <= 100000000) {
+            return 0.10; // 10.00%
+        } else if (positionValue > 100000000 && positionValue <= 120000000) {
+            return 0.125; // 12.50%
+        } else if (positionValue > 120000000 && positionValue <= 200000000) {
+            return 0.15; // 15.00%
+        } else if (positionValue > 200000000 && positionValue <= 300000000) {
+            return 0.25; // 25.00%
+        } else if (positionValue > 300000000 && positionValue <= 500000000) {
+            return 0.50; // 50.00%
+        } else {
+            // Default case for positions exceeding the specified ranges
+            return 0.01; // 1.00%
+        }
     }
 
     const renderPosition = ({ item }: { item: Position }) => {
@@ -49,11 +106,10 @@ const PositionsList = observer(() => {
         const positionAmount = Number(item.positionAmt)
         const entryPrice = Number(item.entryPrice)
         const initialMargin = Number(item.positionInitialMargin)
-        const maintMargin = Number(item.maintMargin)
+        const maintenanceMargin = Number(item.maintMargin)
         const initialEquity = entryPrice * positionAmount / leverage
         let pnl;
         let marketPrice = 0
-        let liquidation
 
         if (futuresTradeStore.symbolMarkPrice.has(symbol)) {
             marketPrice = Number(futuresTradeStore.symbolMarkPrice.get(symbol)!.p);
@@ -64,13 +120,33 @@ const PositionsList = observer(() => {
 
         const roe = Number(((pnl / initialEquity) * 100).toFixed(2))
 
+        const maintenanceMarginAllOthers = futuresTradeStore.positions
+            .filter(position => position.symbol !== item.symbol) // Exclude Contract 1
+            .reduce((sum, position) => sum + parseFloat(position.maintMargin), 0);
 
-        if (marketPrice !== 0 && futuresTradeStore.marketSymbols.has(symbol)) {
-            const lastPrice = futuresTradeStore.symbolTicker.get(symbol)?.c ?? 0
-            const marketSymbol = futuresTradeStore.marketSymbols.get(symbol)!
-            const liquidationFee = Number(marketSymbol.liquidationFee)
-            liquidation = ((entryPrice * (1 + (1 / leverage)) - initialMargin - pnl) - (lastPrice - entryPrice) + liquidationFee).toFixed(2)
-        }
+        const unrealizedPNLAllOthers = futuresTradeStore.positions
+            .filter(position => position.symbol !== item.symbol) // Exclude Contract 1
+            .reduce((sum, position) => sum + parseFloat(position.unrealizedProfit), 0);
+
+        const liquidation = calculateLiquidationPrice(
+            futuresTradeStore.totalWalletBalance,
+            maintenanceMarginAllOthers,
+            unrealizedPNLAllOthers,
+            parseFloat(item.maintMargin),
+            0,
+            0,
+            1,
+            parseFloat(item.positionAmt),
+            parseFloat(item.entryPrice),
+            0,
+            0,
+            0,
+            0,
+            getMaintMarginRatio(parseFloat(item.notional)), // Use position value to get maintMarginRatio
+            0,
+            0
+        );
+
 
         return (
             <View key={symbol} style={styles.card}>
@@ -111,18 +187,18 @@ const PositionsList = observer(() => {
                     </View>
                     <View style={styles.cell}>
                         <Text style={{ ...styles.title, ...styles.textRight }}>Liq.Price</Text>
-                        {liquidation && <Text style={{ ...styles.item, ...styles.textRight }}>{liquidation}</Text>}
+                        {liquidation && <Text style={{ ...styles.item, ...styles.textRight }}>{liquidation.toFixed(2)}</Text>}
                         {/* <Text style={{ ...styles.item, ...styles.textRight }}>--</Text> */}
                     </View>
                 </View>
                 <View style={{ ...styles.row, marginVertical: 10, justifyContent: 'space-between' }}>
-                    <Button style={{ backgroundColor: 'white', }} onPress={() => { showManageSheet(item) }} icon="circle-edit-outline">
+                    <Button style={{ backgroundColor: 'white', }} onPress={() => { showManageSheet(item, 'LEVERAGE') }} icon="circle-edit-outline">
                         <Text style={{ color: 'black' }}>Leverage</Text>
                     </Button>
-                    <Button style={{ backgroundColor: 'white', }} onPress={() => { showManageSheet(item) }} icon="stop-circle-outline">
+                    <Button style={{ backgroundColor: 'white', }} onPress={() => { showManageSheet(item, 'PNL') }} icon="stop-circle-outline">
                         <Text style={{ color: 'black' }}>Stop PNL</Text>
                     </Button>
-                    <Button style={{ backgroundColor: 'white', }} onPress={() => { showManageSheet(item) }} icon="close">
+                    <Button style={{ backgroundColor: 'white', }} onPress={() => { showManageSheet(item, 'CLOSE') }} icon="close">
                         <Text style={{ color: 'black' }}>Close</Text>
                     </Button>
                 </View>
@@ -155,7 +231,7 @@ const PositionsList = observer(() => {
                 handleIndicatorStyle={{ display: 'none' }}
                 enablePanDownToClose
                 snapPoints={['100%']}>
-                {currentSharePosition && <SharePosition position={currentSharePosition!} close={() => shareSheetRef.current?.close()} />}
+                {currentPosition && <SharePosition position={currentPosition!} close={() => shareSheetRef.current?.close()} />}
             </BottomSheetModal>
             <BottomSheetModal
                 ref={manageSheetRef}
@@ -165,9 +241,16 @@ const PositionsList = observer(() => {
                     backgroundColor: '#161A1E',
                 }}
                 handleIndicatorStyle={{ backgroundColor: 'white' }}
+                enableContentPanningGesture={false}
                 enablePanDownToClose
                 snapPoints={['60%']}>
-                {currentManagePosition && <ManagePosition position={currentManagePosition!} close={() => manageSheetRef.current?.close()} />}
+                <BottomSheetScrollView contentContainerStyle={{ flexGrow: 1 }}>
+                    {currentPosition && <PositionInfo position={currentPosition} />}
+                    <Divider style={{ margin: 10 }} />
+                    {currentPosition && currentManageAction === 'LEVERAGE' && <HandlePositionLeverage position={currentPosition!} close={() => manageSheetRef.current?.close()} />}
+                    {currentPosition && currentManageAction === 'PNL' && <ManagePosition position={currentPosition!} close={() => manageSheetRef.current?.close()} />}
+                    {currentPosition && currentManageAction === 'CLOSE' && <ManagePosition position={currentPosition!} close={() => manageSheetRef.current?.close()} />}
+                </BottomSheetScrollView>
             </BottomSheetModal>
         </>
     )

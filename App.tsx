@@ -14,6 +14,7 @@ import { PaperProvider } from 'react-native-paper'
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'
 import HomeScreen from './screens/OpenSea/HomeScreen'
 import DemoUI from './screens/DemoUI'
+import SymbolInfo from './components/SymbolInfo'
 
 
 const Stack = createNativeStackNavigator()
@@ -39,14 +40,8 @@ function App(): JSX.Element {
                 <Stack.Screen name='trade' component={Trade}
                   options={{
                     title: "Trade",
+                    header: () => <SymbolInfo />,
                     headerShadowVisible: false,
-                    headerShown: false,
-                    headerTitleStyle: {
-                      color: 'white'
-                    },
-                    headerStyle: {
-                      backgroundColor: 'rgb(22, 26, 30)',
-                    }
                   }}
                 />
                 <Stack.Screen name='home' component={HomeScreen}

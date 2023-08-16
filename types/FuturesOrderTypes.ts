@@ -25,21 +25,21 @@ export type FuturesOrderType_LT =
     | 'LIMIT'
     | 'MARKET'
     | 'STOP'
-    | 'TAKE_PROFIT'
     | 'STOP_MARKET'
-    | 'TAKE_PROFIT_MARKET'
     | 'TRAILING_STOP_MARKET'
+    | 'TAKE_PROFIT'
+    | 'TAKE_PROFIT_MARKET'
 
 export enum OrderType {
     LIMIT = 'LIMIT',
     MARKET = 'MARKET',
     STOP = 'STOP',
-    LIMIT_MAKER = 'LIMIT_MAKER',
     STOP_MARKET = 'STOP_MARKET',
+    TRAILING_STOP_MARKET = 'TRAILING_STOP_MARKET',
+    LIMIT_MAKER = 'LIMIT_MAKER',
     STOP_LOSS_LIMIT = 'STOP_LOSS_LIMIT',
     TAKE_PROFIT_LIMIT = 'TAKE_PROFIT_LIMIT',
     TAKE_PROFIT_MARKET = 'TAKE_PROFIT_MARKET',
-    TRAILING_STOP_MARKET = 'TRAILING_STOP_MARKET',
 }
 
 export interface NewFuturesOrderBase {

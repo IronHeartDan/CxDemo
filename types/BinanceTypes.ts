@@ -212,3 +212,12 @@ export type MarketSymbol = {
     orderTypes: OrderType[]
     timeInForce: TimeInForce[]
 }
+
+export type Bracket = {
+    bracket: number // Notional bracket
+    initialLeverage: number // Max initial leverage for this bracket
+    notionalCap: number // Cap notional of this bracket
+    notionalFloor: number // Notional threshold of this bracket
+    maintMarginRatio: number // Maintenance ratio for this bracket
+    cum: 0 // Auxiliary number for quick calculation
+}

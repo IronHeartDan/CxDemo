@@ -14,7 +14,7 @@ import {
     BottomSheetBackdrop,
     BottomSheetModal,
 } from '@gorhom/bottom-sheet';
-import { Button } from 'react-native-paper';
+import { Appbar, Button } from 'react-native-paper';
 import PlaceOrder from './PlaceOrder'
 import MarketInfo from '../../components/MarketInfo'
 import futuresTradeStore from '../../stores/FuturesTradeStore'
@@ -24,7 +24,6 @@ import { TabItemProps, Tabs } from 'react-native-collapsible-tab-view'
 import Snackbar from 'react-native-snackbar'
 import TradeHistory from '../../components/TradeHistory'
 import SymbolInfo from '../../components/SymbolInfo'
-import SelectSymbol from './SelectSymbol'
 
 
 const Trade = observer(() => {
@@ -32,7 +31,6 @@ const Trade = observer(() => {
     const [activeTab, setActiveTab] = useState(0)
     const placeOrderSheetRef = useRef<BottomSheetModal | null>(null)
     const enableFuturesSheetRef = useRef<BottomSheetModal | null>(null)
-    const selectSymbolSheetRef = useRef<BottomSheetModal | null>(null)
 
 
     useEffect(() => {
@@ -77,13 +75,6 @@ const Trade = observer(() => {
     const header = useCallback(() => {
         return (
             <View style={{ width: '100%' }}>
-                <View style={{ padding: 10 }}>
-                    <TouchableOpacity onPress={() => {
-                        selectSymbolSheetRef.current?.present()
-                    }}>
-                        <SymbolInfo />
-                    </TouchableOpacity>
-                </View>
                 <WebView
                     style={{ backgroundColor: "transparent", aspectRatio: 1 }}
                     source={{ uri: `https://cryptoxpress.com/charts-dark?symbol=${futuresTradeStore.currentSymbol}` }}
@@ -113,7 +104,6 @@ const Trade = observer(() => {
     const close = () => {
         placeOrderSheetRef?.current?.close()
         enableFuturesSheetRef?.current?.close()
-        selectSymbolSheetRef.current?.close()
     }
 
     const renderTabText = useCallback(({ name, index }: TabItemProps<any>) => (
@@ -195,20 +185,6 @@ const Trade = observer(() => {
                     backgroundColor: 'white'
                 }}>
                 <EnableFutures close={close} />
-            </BottomSheetModal>
-            <BottomSheetModal
-                ref={selectSymbolSheetRef}
-                index={0}
-                backdropComponent={renderBackdrop}
-                enablePanDownToClose
-                snapPoints={['100%']}
-                backgroundStyle={{
-                    backgroundColor: '#161A1E',
-                }}
-                handleIndicatorStyle={{
-                    backgroundColor: 'white'
-                }}>
-                <SelectSymbol close={close} />
             </BottomSheetModal>
         </View>
     )

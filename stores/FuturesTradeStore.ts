@@ -1,6 +1,6 @@
 import axios from "axios"
 import { makeAutoObservable, runInAction } from "mobx"
-import { Ticker, MarkPrice, TradeData, StreamTradeData, AccountInfo, Position, MarketSymbol, Order } from "../types/BinanceTypes"
+import { Ticker, MarkPrice, TradeData, StreamTradeData, AccountInfo, Position, MarketSymbol, Order, Bracket } from "../types/BinanceTypes"
 import { client } from "../utils/ApiManage"
 import binanceClient from "../utils/BinanceClient"
 import { FuturesOrderType_LT, NewFuturesOrder, NewFuturesOrderBase, OrderSide_LT } from "../types/FuturesOrderTypes"
@@ -27,14 +27,16 @@ class FuturesTradeStore {
     // Market Info
     isMarketConnected = false
     currentSymbol = 'BTCUSDT'
+    currentLeverage = 0
     exchangeInfo: any | null = null
     marketSymbols: Map<string, MarketSymbol> = new Map()
-    private marketWS: WebSocket | null = null
-    private userWS: WebSocket | null = null
     tradeHistory: any[] = []
     orderBook = { a: [], b: [], loaded: false }
     symbolTicker: Map<string, Ticker> = new Map()
     symbolMarkPrice: Map<string, MarkPrice> = new Map()
+
+    private marketWS: WebSocket | null = null
+    private userWS: WebSocket | null = null
 
     private static instance: FuturesTradeStore | null = null
 
@@ -101,6 +103,11 @@ class FuturesTradeStore {
         })
     }
 
+    fetchLeverageBrackets = async (symbol: string): Promise<Bracket[]> => {
+        const res: { symbol: string, brackets: Bracket[] }[] = await binanceClient.futuresLeverageBracket({ symbol: symbol })
+        return res[0].brackets
+    }
+
     loadAllFromBinance = async () => {
         const exchangeInfo = await binanceClient.futuresExchangeInfo()
         const marketSymbols: Map<string, MarketSymbol> = new Map()
@@ -118,6 +125,7 @@ class FuturesTradeStore {
             symbol: this.currentSymbol
         })
         // const positions = await binanceClient.futuresPositionRisk()
+        const currentleverage = Number(accInfo.positions.find((position) => position.symbol === this.currentSymbol)?.leverage ?? 0)
         const openPositions = accInfo.positions.filter((position) => parseFloat(position.positionAmt) !== 0)
         runInAction(() => {
             this.exchangeInfo = exchangeInfo
@@ -146,6 +154,7 @@ class FuturesTradeStore {
                     this.symbolTicker.set(ticker.s, ticker)
                 }
             }
+            this.currentLeverage = currentleverage
             this.marketSymbols = marketSymbols
             this.orderBook = { a: orderBook.a, b: orderBook.b, loaded: true }
             this.totalWalletBalance = parseFloat(accInfo.totalWalletBalance)
@@ -157,6 +166,31 @@ class FuturesTradeStore {
         })
     }
 
+    fetchOrdersFromBinance = async () => {
+        const orders: Order[] = await binanceClient.futuresOpenOrders({
+            symbol: this.currentSymbol
+        })
+        runInAction(() => {
+            this.orders = orders.sort((a, b) => b.time - a.time)
+        })
+    }
+
+    fetchPositionsFromBinance = async () => {
+        const accInfo: AccountInfo = await binanceClient.futuresAccountInfo()
+        const currentleverage = Number(accInfo.positions.find((position) => position.symbol === this.currentSymbol)?.leverage ?? 0)
+        const openPositions = accInfo.positions.filter((position) => parseFloat(position.positionAmt) !== 0)
+        runInAction(() => {
+            this.currentLeverage = currentleverage
+            this.positions = openPositions
+        })
+    }
+
+    changeSymbolLeverage = async (symbol: string, leverage: number) => {
+        await binanceClient.futuresLeverage({
+            symbol: symbol,
+            leverage: leverage
+        })
+    }
 
     placeOrder = async ({ side, orderType, orderQuantity, orderPrice, stopPrice }:
         {
@@ -324,8 +358,20 @@ class FuturesTradeStore {
         }
 
         this.userWS.onmessage = (event: WebSocketMessageEvent) => {
-            // this.loadAll()
-            this.loadAllFromBinance()
+            const data = JSON.parse(event.data)
+            if (!data) return
+
+            switch (data.e) {
+                case 'ACCOUNT_CONFIG_UPDATE':
+                case 'ACCOUNT_UPDATE':
+                    this.fetchPositionsFromBinance()
+                    break;
+                case 'ORDER_TRADE_UPDATE':
+                    this.fetchOrdersFromBinance()
+                    break
+                default:
+                    break;
+            }
         }
 
         const interval = setInterval(() => {
