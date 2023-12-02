@@ -6,7 +6,7 @@ import { BottomSheetBackdrop, BottomSheetModal } from '@gorhom/bottom-sheet'
 import SelectSymbol from '../screens/FutureTrade/SelectSymbol'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 import { Modal, Portal } from 'react-native-paper'
-import HandleLeverage from '../screens/FutureTrade/HandleLeverage'
+import HandleLeverage from '../screens/FutureTrade/HandlePairConfig'
 
 const SymbolInfo = observer(() => {
 
